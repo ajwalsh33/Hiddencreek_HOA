@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hidden Creek HOA — Financial Planning System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── RESET & BASE ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+
+/* ── APP HEADER ── */
+.app-header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);color:white;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+.app-header h1{font-size:1.25rem;font-weight:700;}
+.app-header .eyebrow{font-size:.72rem;opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.save-indicator{font-size:.72rem;color:#94a3b8;}
+.save-indicator.saved{color:#4ade80;}
+.btn-homeowner{background:#f59e0b;color:#1e293b;border:none;padding:8px 18px;border-radius:8px;font-size:.82rem;font-weight:700;transition:.15s;}
+.btn-homeowner:hover{background:#fbbf24;}
+.btn-export{background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.2);padding:7px 14px;border-radius:7px;font-size:.78rem;}
+.btn-export:hover{background:rgba(255,255,255,.2);}
+
+/* ── TAB NAV ── */
+.tab-nav{background:white;border-bottom:2px solid #e2e8f0;display:flex;padding:0 20px;position:sticky;top:53px;z-index:90;overflow-x:auto;}
+.tab-btn{padding:14px 20px;border:none;background:none;font-size:.82rem;font-weight:600;color:#64748b;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;cursor:pointer;}
+.tab-btn:hover{color:#1e293b;}
+.tab-btn.active{color:#1e293b;border-bottom-color:#1e293b;}
+.tab-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:#e2e8f0;border-radius:50%;font-size:.68rem;margin-right:6px;}
+.tab-btn.active .tab-num{background:#1e293b;color:white;}
+
+/* ── CONTAINER & CARDS ── */
+.container{max-width:1400px;margin:0 auto;padding:24px 20px;}
+.card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px;}
+.card-title{font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:4px;}
+.card-sub{font-size:.78rem;color:#94a3b8;margin-bottom:16px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.section-header .right{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border-radius:7px;font-size:.8rem;font-weight:600;border:none;transition:.15s;}
+.btn-primary{background:#1e293b;color:white;}.btn-primary:hover{background:#334155;}
+.btn-sm{padding:5px 10px;font-size:.75rem;}
+.btn-success{background:#16a34a;color:white;}.btn-success:hover{background:#15803d;}
+.btn-warn{background:#d97706;color:white;}.btn-warn:hover{background:#b45309;}
+.btn-danger{background:#ef4444;color:white;}.btn-danger:hover{background:#dc2626;}
+.btn-ghost{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;}.btn-ghost:hover{background:#e2e8f0;}
+.btn-blue{background:#3b82f6;color:white;}.btn-blue:hover{background:#2563eb;}
+
+/* ── SETTINGS FORM ── */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;}
+.field input,.field select,.field textarea{padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.9rem;outline:none;transition:.15s;font-family:inherit;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+.field textarea{resize:vertical;min-height:90px;line-height:1.5;}
+.field .hint{font-size:.7rem;color:#94a3b8;}
+
+/* ── BUDGET TABLE ── */
+.budget-table{width:100%;border-collapse:collapse;font-size:.83rem;}
+.budget-table th{padding:8px 12px;text-align:right;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:2px solid #e2e8f0;background:#f8fafc;}
+.budget-table th:first-child{text-align:left;}
+.budget-table td{padding:7px 12px;border-bottom:1px solid #f1f5f9;text-align:right;vertical-align:middle;}
+.budget-table td:first-child{text-align:left;}
+.budget-table .cat-header td{background:#f8fafc;font-weight:700;font-size:.8rem;color:#1e293b;padding:10px 12px;border-bottom:2px solid #e2e8f0;}
+.budget-table .cat-footer td{background:#f0f4f8;font-weight:700;font-size:.8rem;border-top:1px solid #e2e8f0;border-bottom:2px solid #e2e8f0;padding:8px 12px;}
+.budget-table .total-row td{background:#1e293b;color:white;font-weight:700;padding:10px 12px;font-size:.88rem;}
+.budget-table .total-row td:first-child{border-radius:8px 0 0 8px;}
+.budget-table .total-row td:last-child{border-radius:0 8px 8px 0;}
+.editable-cell{cursor:pointer;border-radius:4px;padding:2px 4px;transition:.1s;}
+.editable-cell:hover{background:#eff6ff;outline:1px dashed #93c5fd;}
+.editable-cell input{width:100%;border:none;background:transparent;text-align:right;font-size:inherit;outline:2px solid #3b82f6;border-radius:3px;padding:1px 4px;}
+.editable-name input{text-align:left;}
+.util-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;}
+.util-ok{background:#dcfce7;color:#166534;}
+.util-warn{background:#fef9c3;color:#854d0e;}
+.util-over{background:#fee2e2;color:#991b1b;}
+.util-empty{background:#f1f5f9;color:#94a3b8;}
+.row-actions{display:flex;gap:4px;justify-content:flex-end;opacity:0;transition:.15s;}
+.budget-table tr:hover .row-actions{opacity:1;}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:.9rem;padding:2px 4px;border-radius:4px;line-height:1;}
+.icon-btn:hover{background:#fee2e2;}
+
+/* ── CAPITAL PLAN TABLE ── */
+.cap-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.cap-table th{padding:9px 12px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:2px solid #e2e8f0;background:#f8fafc;white-space:nowrap;}
+.cap-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.cap-table tr:last-child td{border-bottom:none;}
+.cap-table tr:hover td{background:#f8fafc;}
+.status-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:.68rem;font-weight:700;white-space:nowrap;}
+.status-planned{background:#f1f5f9;color:#64748b;}
+.status-approved{background:#dbeafe;color:#1d4ed8;}
+.status-inprogress{background:#fef9c3;color:#854d0e;}
+.status-complete{background:#dcfce7;color:#166534;}
+.status-deferred{background:#fee2e2;color:#991b1b;}
+.inflated-col{color:#64748b;font-size:.78rem;}
+
+/* ── FORECAST TABLE ── */
+.forecast-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.forecast-table th{padding:9px 12px;text-align:right;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:2px solid #e2e8f0;background:#f8fafc;}
+.forecast-table th:first-child{text-align:left;}
+.forecast-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:right;}
+.forecast-table td:first-child{text-align:left;font-weight:600;}
+.forecast-table .section-row td{background:#f8fafc;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;padding:6px 12px;}
+.forecast-table .total-in td{background:#f0fdf4;font-weight:700;}
+.forecast-table .total-out td{background:#fef2f2;font-weight:700;}
+.forecast-table .balance-row td{background:#eff6ff;font-weight:800;font-size:.88rem;}
+.balance-ok{color:#16a34a;}
+.balance-warn{color:#d97706;}
+.balance-bad{color:#dc2626;}
+
+/* ── SCENARIO CONTROLS ── */
+.scenario-grid{display:grid;grid-template-columns:340px 1fr;gap:20px;}
+@media(max-width:900px){.scenario-grid{grid-template-columns:1fr;}}
+.control-panel{background:white;border-radius:12px;padding:22px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.control-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:8px;}
+.scenario-amount-display{font-size:2.4rem;font-weight:800;color:#1e293b;line-height:1;}
+.scenario-monthly{font-size:.88rem;color:#64748b;margin-top:3px;margin-bottom:14px;}
+.big-slider{width:100%;height:8px;-webkit-appearance:none;appearance:none;background:#e2e8f0;border-radius:4px;outline:none;cursor:pointer;margin-bottom:8px;}
+.big-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#1e293b;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.slider-ticks{display:flex;justify-content:space-between;font-size:.68rem;color:#94a3b8;}
+.delinq-display{font-size:1.8rem;font-weight:800;margin-bottom:4px;}
+.delinq-impact{font-size:.8rem;color:#94a3b8;}
+.scenario-health{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:10px;margin-top:14px;font-size:.88rem;font-weight:600;}
+.scenario-health.green{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
+.scenario-health.yellow{background:#fefce8;border:1px solid #fde047;color:#854d0e;}
+.scenario-health.red{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;}
+.mini-compare-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:12px;}
+.mini-compare-table th{padding:6px 10px;text-align:left;color:#94a3b8;font-size:.68rem;font-weight:700;text-transform:uppercase;border-bottom:2px solid #e2e8f0;}
+.mini-compare-table th:not(:first-child){text-align:right;}
+.mini-compare-table td{padding:7px 10px;border-bottom:1px solid #f1f5f9;}
+.mini-compare-table td:not(:first-child){text-align:right;}
+.mini-compare-table tr.base-row td{color:#64748b;}
+.mini-compare-table tr.scenario-row td{font-weight:700;}
+.all-scenarios-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.all-scenarios-table th{padding:9px 12px;background:#1e293b;color:white;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;}
+.all-scenarios-table th:not(:first-child){text-align:right;}
+.all-scenarios-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;}
+.all-scenarios-table td:not(:first-child){text-align:right;}
+.all-scenarios-table tr.active-row td{background:#fffbeb;font-weight:700;}
+.pass{color:#16a34a;font-weight:700;}
+.warn{color:#d97706;font-weight:700;}
+.fail{color:#dc2626;font-weight:700;}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
+.kpi-card{background:white;border-radius:10px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.kpi-icon{font-size:1.1rem;margin-bottom:5px;}
+.kpi-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px;}
+.kpi-value{font-size:1.7rem;font-weight:800;line-height:1;}
+.kpi-sub{font-size:.72rem;color:#94a3b8;margin-top:4px;}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:16px;padding:28px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal.modal-wide{width:760px;}
+.modal h3{font-size:1.1rem;font-weight:700;margin-bottom:20px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;}
+
+/* ── HOMEOWNER OVERLAY ── */
+.ho-overlay{display:none;position:fixed;inset:0;background:#f8faf5;z-index:300;overflow-y:auto;}
+.ho-overlay.open{display:block;}
+.ho-header{background:linear-gradient(135deg,#166534 0%,#14532d 100%);color:white;padding:24px 40px;display:flex;justify-content:space-between;align-items:center;}
+.ho-header h1{font-size:1.6rem;font-weight:700;}
+.ho-header .sub{font-size:.85rem;opacity:.75;margin-top:3px;}
+.ho-header-right{display:flex;gap:10px;align-items:center;}
+.ho-container{max-width:960px;margin:0 auto;padding:32px 24px;}
+.ho-section{background:white;border-radius:14px;padding:28px;margin-bottom:22px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.ho-section h2{font-size:1.1rem;font-weight:700;color:#166534;border-bottom:2px solid #dcfce7;padding-bottom:10px;margin-bottom:18px;}
+.ho-dues-box{display:flex;gap:28px;flex-wrap:wrap;}
+.ho-dues-amount{text-align:center;background:#f0fdf4;border-radius:12px;padding:20px 28px;}
+.ho-dues-amount .big{font-size:2.8rem;font-weight:800;color:#166534;line-height:1;}
+.ho-dues-amount .label{font-size:.8rem;color:#64748b;margin-top:4px;}
+.ho-breakdown{display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+.ho-breakdown-table{flex:1;min-width:260px;font-size:.85rem;border-collapse:collapse;}
+.ho-breakdown-table td{padding:7px 10px;border-bottom:1px solid #f1f5f9;}
+.ho-breakdown-table tr:last-child td{border-bottom:none;font-weight:700;border-top:2px solid #e2e8f0;}
+.ho-cat-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;}
+.ho-project-list{width:100%;border-collapse:collapse;font-size:.85rem;}
+.ho-project-list th{padding:8px 12px;background:#f0fdf4;font-size:.72rem;font-weight:700;text-transform:uppercase;color:#166534;border-bottom:2px solid #dcfce7;}
+.ho-project-list td{padding:9px 12px;border-bottom:1px solid #f0fdf4;}
+.ho-big-project td{color:#b91c1c;font-weight:700;}
+.ho-reserve-bar{background:#e2e8f0;border-radius:999px;height:16px;position:relative;margin:10px 0;}
+.ho-reserve-fill{background:#22c55e;border-radius:999px;height:16px;transition:.5s;}
+.ho-reserve-fill.warn{background:#f59e0b;}
+.ho-reserve-fill.danger{background:#ef4444;}
+.ho-stat-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;}
+.ho-stat{flex:1;min-width:140px;background:#f0fdf4;border-radius:10px;padding:14px 16px;text-align:center;}
+.ho-stat .val{font-size:1.4rem;font-weight:800;color:#166534;}
+.ho-stat .lbl{font-size:.72rem;color:#64748b;margin-top:2px;}
+
+/* ── MISC ── */
+.tab-content{display:none;}.tab-content.active{display:block;}
+.chart-wrap{position:relative;}
+.legend-pill{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:#64748b;margin-right:14px;}
+.legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.divider{height:1px;background:#e2e8f0;margin:16px 0;}
+.notice{padding:12px 16px;border-radius:8px;font-size:.82rem;line-height:1.5;margin-bottom:14px;}
+.notice.info{background:#eff6ff;border-left:4px solid #3b82f6;color:#1d4ed8;}
+.notice.success{background:#f0fdf4;border-left:4px solid #22c55e;color:#166534;}
+.notice.warning{background:#fefce8;border-left:4px solid #f59e0b;color:#854d0e;}
+.notice.danger{background:#fef2f2;border-left:4px solid #ef4444;color:#991b1b;}
+.text-right{text-align:right;}
+.text-muted{color:#94a3b8;}
+.mt-4{margin-top:16px;}
+.add-item-row td{padding:6px 12px;}
+
+/* ── LOTS & REVENUE ── */
+.dues-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.dues-table th{padding:9px 12px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:2px solid #e2e8f0;background:#f8fafc;white-space:nowrap;}
+.dues-table td{padding:7px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.dues-table tr:hover td{background:#f8fafc;}
+.pmt-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;user-select:none;border:none;}
+.pmt-paid{background:#dcfce7;color:#166534;}.pmt-paid:hover{background:#bbf7d0;}
+.pmt-partial{background:#fef9c3;color:#854d0e;}.pmt-partial:hover{background:#fde047;}
+.pmt-unpaid{background:#f1f5f9;color:#64748b;}.pmt-unpaid:hover{background:#fee2e2;color:#991b1b;}
+.pmt-waived{background:#ede9fe;color:#6d28d9;}
+.revenue-bar{background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;margin-top:5px;}
+.revenue-bar-fill{background:#22c55e;border-radius:999px;height:8px;transition:.5s;}
+.impact-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.impact-table th{padding:9px 12px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:2px solid #e2e8f0;background:#f8fafc;}
+.impact-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.impact-table tr:hover td{background:#f8fafc;}
+/* ── BANK ── */
+.txn-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.txn-table th{padding:9px 12px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;border-bottom:2px solid #e2e8f0;background:#f8fafc;}
+.txn-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.txn-table tr:hover td{background:#f8fafc;}
+.txn-credit{color:#16a34a;font-weight:600;}
+.txn-debit{color:#dc2626;font-weight:600;}
+.txn-balance{font-weight:700;}.txn-balance.negative{color:#dc2626;}
+.cleared-cb{width:16px;height:16px;cursor:pointer;accent-color:#1e293b;}
+.recon-box{background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:20px 24px;}
+.recon-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:.88rem;}
+.recon-row:last-child{border-bottom:none;}
+.recon-val{font-weight:700;font-size:1rem;}
+/* PRINT */
+@media print{
+  .app-header,.tab-nav,.btn-homeowner,.btn-export,.ho-header-right{display:none!important;}
+  .ho-overlay{position:static!important;background:white!important;}
+  .ho-section{box-shadow:none!important;border:1px solid #e2e8f0;page-break-inside:avoid;}
+  .ho-container{padding:0!important;}
+  body{background:white!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ APP HEADER ══ -->
+<div class="app-header">
+  <div>
+    <div class="eyebrow">🏡 Hidden Creek Homeowners Association</div>
+    <h1 id="header-title">Financial Planning System — FY 2026</h1>
+  </div>
+  <div class="header-right">
+    <span class="save-indicator" id="save-indicator">All changes saved</span>
+    <button class="btn-export btn-sm btn" onclick="exportData()">⬇ Export</button>
+    <label class="btn-export btn-sm btn" style="cursor:pointer">⬆ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+    <button class="btn-homeowner" onclick="showHomeowner()">🏠 Homeowner View</button>
+  </div>
+</div>
+
+<!-- ══ TAB NAV ══ -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('settings')"><span class="tab-num">1</span>⚙ Settings</button>
+  <button class="tab-btn" onclick="switchTab('budget')"><span class="tab-num">2</span>📊 Annual Budget</button>
+  <button class="tab-btn" onclick="switchTab('capital')"><span class="tab-num">3</span>🔧 Capital Plan</button>
+  <button class="tab-btn" onclick="switchTab('forecast')"><span class="tab-num">4</span>📈 Reserve Forecast</button>
+  <button class="tab-btn" onclick="switchTab('scenarios')"><span class="tab-num">5</span>🎯 Scenarios</button>
+  <button class="tab-btn" onclick="switchTab('lots')"><span class="tab-num">6</span>🏘 Lots &amp; Revenue</button>
+  <button class="tab-btn" onclick="switchTab('bank')"><span class="tab-num">7</span>🏦 Bank &amp; Reconciliation</button>
+</div>
+
+<!-- ══ TAB CONTENT ══ -->
+<div class="container">
+
+  <!-- TAB 1: SETTINGS -->
+  <div id="tab-settings" class="tab-content active">
+    <div class="card">
+      <div class="card-title">Community Settings</div>
+      <div class="card-sub">These values drive every calculation across all tabs. Update at the start of each fiscal year.</div>
+      <div class="settings-grid" id="settings-form"></div>
+      <div style="margin-top:20px;display:flex;align-items:center;gap:12px;">
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        <span id="settings-saved" style="font-size:.78rem;color:#16a34a;display:none">✓ Saved</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">How to Use This System</div>
+      <div style="font-size:.85rem;line-height:1.8;color:#475569;">
+        <strong style="display:block;margin-bottom:8px;">Annual Planning Workflow:</strong>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">1</span><span><strong>Settings</strong> — Set your community parameters, dues level, and financial assumptions for the year.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">2</span><span><strong>Annual Budget</strong> — Enter your operating budget line by line. Update actuals throughout the year to track spending.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">3</span><span><strong>Capital Plan</strong> — List all planned one-time projects with estimated costs and target years.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">4</span><span><strong>Reserve Forecast</strong> — Auto-calculated 10-year reserve trajectory. No editing needed — just review and act.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">5</span><span><strong>Scenarios</strong> — Test different dues levels and model what happens if homeowners go delinquent on dues.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:#166534;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">🏠</span><span><strong>Homeowner View</strong> — A clean, shareable summary of the budget and financials suitable for homeowners. Print or show on screen.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: BUDGET -->
+  <div id="tab-budget" class="tab-content">
+    <div class="two-col">
+      <div>
+        <div class="card" style="padding-bottom:14px;">
+          <div class="section-header">
+            <div>
+              <div class="card-title">Operating Budget</div>
+              <div class="card-sub">Click any dollar amount or name to edit inline. Track actuals throughout the year.</div>
+            </div>
+            <div class="right">
+              <button class="btn btn-ghost btn-sm" onclick="addCategory()">+ Category</button>
+            </div>
+          </div>
+          <div id="budget-table-wrap"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">Budget Breakdown</div>
+          <div class="card-sub">2026 budget by category</div>
+          <div class="chart-wrap" style="height:240px;display:flex;align-items:center;justify-content:center;">
+            <canvas id="budget-donut"></canvas>
+            <div style="position:absolute;text-align:center;pointer-events:none;">
+              <div id="budget-total-display" style="font-size:1.4rem;font-weight:800;">$0</div>
+              <div style="font-size:.7rem;color:#94a3b8;">total budget</div>
+            </div>
+          </div>
+          <div id="budget-legend" style="margin-top:12px;"></div>
+        </div>
+        <div class="card" style="margin-top:0;">
+          <div class="card-title">Budget vs. Actuals YTD</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="budget-bar"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-household breakdown (full width) -->
+    <div class="card" style="margin-top:0;" id="household-card">
+      <div class="card-title">Per-Household Breakdown</div>
+      <div class="card-sub" id="household-sub"></div>
+      <div style="overflow-x:auto;margin-top:14px;"><table id="household-table" style="width:100%;border-collapse:collapse;font-size:.88rem;"></table></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: CAPITAL PLAN -->
+  <div id="tab-capital" class="tab-content">
+    <div class="notice info">Capital projects are one-time expenditures drawn from your reserve fund. These are separate from operating expenses. All costs are inflation-adjusted from their base estimates.</div>
+    <div class="card">
+      <div class="section-header">
+        <div><div class="card-title">Capital Projects</div><div class="card-sub">Add, edit, or defer planned projects. Inflated costs calculate automatically.</div></div>
+        <button class="btn btn-primary" onclick="openProjectModal(null)">+ Add Project</button>
+      </div>
+      <div style="overflow-x:auto;"><table class="cap-table" id="capital-table"></table></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Capital Spending by Year</div>
+        <div class="card-sub">Inflated cost — draws from reserve fund</div>
+        <div class="chart-wrap" style="height:230px;"><canvas id="capital-bar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Project Summary</div>
+        <div id="capital-summary"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: RESERVE FORECAST -->
+  <div id="tab-forecast" class="tab-content">
+    <div class="notice info">Auto-calculated from your Budget, Capital Plan, and Settings. No editing needed here — adjust inputs in the other tabs.</div>
+    <div class="kpi-grid" id="forecast-kpis"></div>
+    <div class="card">
+      <div class="card-title">10-Year Reserve Trajectory</div>
+      <div style="margin-bottom:12px;">
+        <span class="legend-pill"><span class="legend-dot" style="background:#3b82f6"></span>Reserve Balance</span>
+        <span class="legend-pill"><span style="border-top:3px dashed #ef4444;display:inline-block;width:20px;margin-right:4px;vertical-align:middle;"></span>Minimum Target</span>
+        <span class="legend-pill"><span class="legend-dot" style="background:#f59e0b"></span>Capital project years</span>
+      </div>
+      <div class="chart-wrap" style="height:300px;"><canvas id="forecast-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Year-by-Year Detail</div>
+      <div style="overflow-x:auto;"><table class="forecast-table" id="forecast-table"></table></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: SCENARIOS -->
+  <div id="tab-scenarios" class="tab-content">
+    <div class="scenario-grid">
+      <div>
+        <div class="control-panel">
+          <div class="card-title" style="margin-bottom:16px;">What-If Controls</div>
+          <div class="control-label">Annual dues per lot</div>
+          <div class="scenario-amount-display" id="sc-dues-display">$1,800</div>
+          <div class="scenario-monthly" id="sc-monthly-display">$150 / month per lot</div>
+          <input type="range" class="big-slider" id="sc-dues-slider" min="1500" max="2500" step="50" value="1800" oninput="updateScenario()">
+          <div class="slider-ticks"><span>$1,500</span><span>$2,000</span><span>$2,500</span></div>
+          <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+            <span style="font-size:.75rem;color:#64748b;">Custom:</span>
+            <input type="number" id="sc-dues-input" style="width:100px;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.85rem;" value="1800" oninput="syncDuesInput(this)">
+            <span style="font-size:.75rem;color:#64748b;">/lot/yr</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="control-label">Delinquent lots (not paying dues)</div>
+          <div class="delinq-display" id="sc-delinq-display">0 lots</div>
+          <div class="delinq-impact" id="sc-delinq-impact">No impact</div>
+          <input type="range" class="big-slider" id="sc-delinq-slider" min="0" max="8" step="1" value="0" style="margin-top:8px;" oninput="updateScenario()">
+          <div class="slider-ticks"><span>0</span><span>4</span><span>8 lots</span></div>
+
+          <div id="sc-health" class="scenario-health green" style="margin-top:16px;"></div>
+
+          <div class="divider"></div>
+
+          <button class="btn btn-ghost btn-sm" onclick="resetScenario()" style="width:100%">↺ Reset to current plan</button>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">Reserve Trajectory — Scenario vs. Current Plan</div>
+          <div style="margin-bottom:10px;">
+            <span class="legend-pill"><span class="legend-dot" style="background:#3b82f6"></span>Current plan</span>
+            <span class="legend-pill"><span class="legend-dot" style="background:#f59e0b"></span>Scenario</span>
+            <span class="legend-pill"><span style="border-top:3px dashed #ef4444;display:inline-block;width:20px;vertical-align:middle;margin-right:4px;"></span>$30k min</span>
+          </div>
+          <div class="chart-wrap" style="height:260px;"><canvas id="scenario-chart"></canvas></div>
+          <table class="mini-compare-table" id="sc-compare-table"></table>
+        </div>
+        <div class="card" style="margin-top:0;">
+          <div class="card-title">All Standard Dues Scenarios</div>
+          <div style="overflow-x:auto;"><table class="all-scenarios-table" id="all-scenarios-table"></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: LOTS & REVENUE -->
+  <div id="tab-lots" class="tab-content">
+    <div id="lots-kpis" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+    <!-- Dues tracker -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="card-title">Dues Payment Tracker</div>
+          <div class="card-sub">$900/lot · H1 due January · H2 due July</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="lots-year-sel" class="field select" style="width:auto;padding:6px 10px;font-size:.85rem;" onchange="renderLotsTab()">
+            <option value="2026">2026</option><option value="2027">2027</option><option value="2028">2028</option>
+            <option value="2029">2029</option><option value="2030">2030</option>
+          </select>
+          <select id="lots-period-sel" class="field select" style="width:auto;padding:6px 10px;font-size:.85rem;" onchange="renderLotsTab()">
+            <option value="H1">H1 (January)</option><option value="H2">H2 (July)</option>
+          </select>
+          <button class="btn btn-sm" onclick="markAllPaid()">✓ Mark All Paid</button>
+        </div>
+      </div>
+      <!-- Bulk action toolbar — appears when rows are checked -->
+      <div id="dues-bulk-toolbar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;
+           background:#1e293b;color:white;padding:10px 16px;border-radius:8px;margin-top:14px;font-size:.88rem;">
+        <span id="dues-bulk-count" style="font-weight:600;min-width:100px;"></span>
+        <button class="btn btn-sm" onclick="bulkMark('paid')"
+                style="background:#22c55e;color:white;border-color:#22c55e;">✓ Mark Paid</button>
+        <button class="btn btn-sm" onclick="bulkMark('unpaid')"
+                style="background:#ef4444;color:white;border-color:#ef4444;">✕ Mark Unpaid</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearLotSelection()"
+                style="color:white;border-color:rgba(255,255,255,.3);margin-left:auto;">✕ Clear</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px;">
+        <table class="dues-table" id="dues-table">
+          <thead><tr>
+            <th style="width:36px;"><input type="checkbox" id="select-all-cb" class="cleared-cb"
+                title="Select / deselect all" onchange="toggleSelectAll(this)"></th>
+            <th>Lot #</th><th>Owner</th><th>H1 Status</th><th>H2 Status</th><th>Balance Due</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="dues-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Impact fees -->
+    <div class="card" style="margin-top:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="card-title">Impact Fee Revenue</div>
+          <div class="card-sub">Variable fees attributed to specific capital projects based on construction sq footage</div>
+        </div>
+        <button class="btn btn-sm" onclick="openImpactModal()">+ Add Impact Fee</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:16px;">
+        <table class="impact-table" id="impact-table">
+          <thead><tr>
+            <th>Date</th><th>Lot #</th><th>Owner</th><th>Project</th><th>Sq Ft</th><th>Amount</th><th>Notes</th><th></th>
+          </tr></thead>
+          <tbody id="impact-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 7: BANK VISIBILITY -->
+  <div id="tab-bank" class="tab-content">
+    <div class="notice info">No transaction entry needed. The treasurer periodically logs the actual bank balance — the system compares it against the reserve model so every board member can see whether the account is on track.</div>
+    <div id="bank-kpis" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="card-title">Balance History</div>
+          <div class="card-sub">Actual balance vs. what the reserve model projects for that year</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="showBalanceForm()">+ Log Balance</button>
+      </div>
+
+      <!-- Inline entry form (hidden by default) -->
+      <div id="balance-form-wrap" style="display:none;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-top:16px;">
+        <div style="font-weight:600;font-size:.88rem;margin-bottom:12px;color:#1e293b;">New Balance Entry</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:1;min-width:140px;">
+            <label style="font-size:.78rem;color:#64748b;display:block;margin-bottom:4px;">Date</label>
+            <input type="date" id="bal-date" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.88rem;">
+          </div>
+          <div style="flex:1;min-width:160px;">
+            <label style="font-size:.78rem;color:#64748b;display:block;margin-bottom:4px;">Actual Bank Balance ($)</label>
+            <input type="number" id="bal-amount" step="0.01" placeholder="e.g. 43250.00" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.88rem;">
+          </div>
+          <div style="flex:2;min-width:200px;">
+            <label style="font-size:.78rem;color:#64748b;display:block;margin-bottom:4px;">Notes / Entered By</label>
+            <input type="text" id="bal-notes" placeholder="e.g. Month-end, confirmed by treasurer" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.88rem;">
+          </div>
+          <div style="display:flex;gap:8px;padding-bottom:1px;">
+            <button class="btn btn-primary btn-sm" onclick="saveBalanceEntry()">Save</button>
+            <button class="btn btn-ghost btn-sm" onclick="hideBalanceForm()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;margin-top:16px;">
+        <table class="txn-table" id="balance-table">
+          <thead><tr>
+            <th>Date</th><th>Notes</th><th style="text-align:right">Actual Balance</th>
+            <th style="text-align:right">Model Expected (YE)</th><th style="text-align:right">Variance</th><th></th>
+          </tr></thead>
+          <tbody id="balance-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:0;display:none;" id="balance-chart-card">
+      <div class="card-title">Actual vs. Model Over Time</div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="balance-chart"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ══ CAPITAL PROJECT MODAL ══ -->
+<div class="modal-overlay" id="project-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal modal-wide">
+    <h3 id="modal-title">Add Capital Project</h3>
+    <input type="hidden" id="modal-project-id">
+    <div class="modal-grid">
+      <div class="field" style="grid-column:1/-1">
+        <label>Project Name</label>
+        <input type="text" id="mp-name" placeholder="e.g. Pool pump replacement">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="mp-category">
+          <option>Administrative</option>
+          <option>Grounds & Roads</option>
+          <option>Insurance & Professional</option>
+          <option>Pool & Amenities</option>
+          <option>Utilities</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="mp-status">
+          <option value="planned">Planned</option>
+          <option value="approved">Approved</option>
+          <option value="inprogress">In Progress</option>
+          <option value="complete">Complete</option>
+          <option value="deferred">Deferred</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Target Year</label>
+        <input type="number" id="mp-year" min="2024" max="2040" value="2026">
+      </div>
+      <div class="field">
+        <label>Base Cost ($)</label>
+        <input type="number" id="mp-cost" min="0" placeholder="0">
+        <span class="hint">Today's dollars — inflation applied automatically</span>
+      </div>
+      <div class="field">
+        <label>Inflation Override (%)</label>
+        <input type="number" id="mp-infl" step="0.1" placeholder="Leave blank = use default">
+        <span class="hint">Leave blank to use the default capital inflation rate</span>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Notes &amp; Assumptions</label>
+        <textarea id="mp-notes" rows="5"
+          placeholder="Document your assumptions here — cost source, contractor quotes, condition assessment, timing rationale, links to bids, board discussion context, etc."></textarea>
+      </div>
+    </div>
+    <div id="modal-inflated-preview" style="font-size:.8rem;color:#64748b;margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAYMENT MODAL ══ -->
+<div class="modal-overlay" id="payment-modal" onclick="if(event.target===this)closePaymentModal()">
+  <div class="modal">
+    <h3 id="pmt-modal-title">Record Payment</h3>
+    <input type="hidden" id="pmt-lot-id">
+    <input type="hidden" id="pmt-period-id">
+    <div class="modal-grid">
+      <div class="field">
+        <label>Lot #</label>
+        <input type="text" id="pmt-lot-display" readonly style="background:#f8fafc;">
+      </div>
+      <div class="field">
+        <label>Period</label>
+        <input type="text" id="pmt-period-display" readonly style="background:#f8fafc;">
+      </div>
+      <div class="field">
+        <label>Amount Received ($)</label>
+        <input type="number" id="pmt-amount" step="0.01" placeholder="900.00">
+      </div>
+      <div class="field">
+        <label>Date Received</label>
+        <input type="date" id="pmt-date">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="pmt-status">
+          <option value="paid">Paid in Full</option>
+          <option value="partial">Partial</option>
+          <option value="waived">Waived</option>
+          <option value="unpaid">Unpaid</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <input type="text" id="pmt-notes" placeholder="Payment method, check #, etc.">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closePaymentModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePayment()">Save Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IMPACT FEE MODAL ══ -->
+<div class="modal-overlay" id="impact-modal" onclick="if(event.target===this)closeImpactModal()">
+  <div class="modal">
+    <h3 id="impact-modal-title">Add Impact Fee</h3>
+    <input type="hidden" id="imp-id">
+    <div class="modal-grid">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="imp-date">
+      </div>
+      <div class="field">
+        <label>Lot #</label>
+        <input type="text" id="imp-lot" placeholder="e.g. 14">
+      </div>
+      <div class="field">
+        <label>Owner Name</label>
+        <input type="text" id="imp-owner" placeholder="e.g. Jane Smith">
+      </div>
+      <div class="field">
+        <label>Sq Footage of Project</label>
+        <input type="number" id="imp-sqft" placeholder="e.g. 800">
+      </div>
+      <div class="field">
+        <label>Amount ($)</label>
+        <input type="number" id="imp-amount" step="0.01" placeholder="e.g. 2000.00">
+      </div>
+      <div class="field">
+        <label>Linked Capital Project</label>
+        <select id="imp-project"></select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Notes</label>
+        <input type="text" id="imp-notes" placeholder="Permit #, description, etc.">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeImpactModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveImpactFee()">Save Impact Fee</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TRANSACTION MODAL ══ -->
+<div class="modal-overlay" id="txn-modal" onclick="if(event.target===this)closeTxnModal()">
+  <div class="modal">
+    <h3 id="txn-modal-title">Add Transaction</h3>
+    <input type="hidden" id="txn-id">
+    <div class="modal-grid">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="txn-date">
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select id="txn-type">
+          <option value="credit">Credit (money in)</option>
+          <option value="debit">Debit (money out)</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Description</label>
+        <input type="text" id="txn-desc" placeholder="e.g. Dues payment - Lot 12">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="txn-cat">
+          <option>Dues Revenue</option>
+          <option>Impact Fee Revenue</option>
+          <option>Interest Income</option>
+          <option>Operating Expense</option>
+          <option>Capital Expense</option>
+          <option>Transfer</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Amount ($)</label>
+        <input type="number" id="txn-amount" step="0.01" placeholder="e.g. 900.00">
+      </div>
+      <div class="field">
+        <label>Reference / Check #</label>
+        <input type="text" id="txn-ref" placeholder="Optional">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <input type="text" id="txn-notes" placeholder="Optional">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeTxnModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTransaction()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HOMEOWNER OVERLAY ══ -->
+<div class="ho-overlay" id="ho-overlay">
+  <div class="ho-header">
+    <div>
+      <div id="ho-title" style="font-size:1.5rem;font-weight:700;">Hidden Creek HOA</div>
+      <div id="ho-subtitle" class="sub">FY 2026 — Community Financial Summary</div>
+    </div>
+    <div class="ho-header-right">
+      <button class="btn btn-success" onclick="window.print()">🖨 Print / Save PDF</button>
+      <button class="btn btn-ghost" onclick="hideHomeowner()">✕ Close</button>
+    </div>
+  </div>
+  <div class="ho-container" id="ho-content"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// 1. DEFAULT STATE
+// ═══════════════════════════════════════════════════
+const DEFAULT_STATE = {
+  settings: {
+    hoaName: "Hidden Creek HOA",
+    fiscalYear: 2026,
+    lots: 29,
+    assessmentPerLot: 1800,
+    startingReserve: 40000,
+    minReserve: 30000,
+    interestRate: 3.5,
+    opexInflation: 3.0,
+    capexInflation: 3.0
+  },
+  budget: {
+    categories: [
+      { id:"admin", name:"Administrative", items:[
+        { id:"a1", name:"Bank service charges",                    budget:30,    actual:0, notes:"" },
+        { id:"a2", name:"PO Box / postage",                        budget:72,    actual:0, notes:"" }
+      ]},
+      { id:"grounds", name:"Grounds & Roads", items:[
+        { id:"g1", name:"Landscaping / mowing",                    budget:6000,  actual:0, notes:"" },
+        { id:"g2", name:"Dust control (road)",                     budget:1200,  actual:0, notes:"" },
+        { id:"g3", name:"Road maintenance (potholes/spot repairs)", budget:3500,  actual:0, notes:"" },
+        { id:"g4", name:"Snow plowing",                            budget:1200,  actual:0, notes:"" },
+        { id:"g5", name:"Tree removal",                            budget:1500,  actual:0, notes:"" }
+      ]},
+      { id:"insurance", name:"Insurance & Professional", items:[
+        { id:"i1", name:"Insurance",                               budget:1800,  actual:0, notes:"" },
+        { id:"i2", name:"Professional fees (legal/accounting)",    budget:500,   actual:0, notes:"" }
+      ]},
+      { id:"pool", name:"Pool & Amenities", items:[
+        { id:"p1", name:"Pool service / maintenance contract",     budget:9000,  actual:0, notes:"" },
+        { id:"p2", name:"Pool mechanicals (operating)",            budget:2000,  actual:0, notes:"" },
+        { id:"p3", name:"Pool supplies & chemicals",               budget:700,   actual:0, notes:"" },
+        { id:"p4", name:"Pool licenses & inspections",             budget:325,   actual:0, notes:"" },
+        { id:"p5", name:"Pest service (pool area)",                budget:230,   actual:0, notes:"" },
+        { id:"p6", name:"Hardscape maintenance",                   budget:500,   actual:0, notes:"" },
+        { id:"p7", name:"Weekly patio / restroom cleaning",        budget:1700,  actual:0, notes:"" }
+      ]},
+      { id:"utilities", name:"Utilities", items:[
+        { id:"u1", name:"Electric / utilities",                    budget:2400,  actual:0, notes:"" },
+        { id:"u2", name:"Telephone / internet",                    budget:1000,  actual:0, notes:"" }
+      ]}
+    ]
+  },
+  capitalProjects: [
+    { id:"cp1", name:"Neighborhood sign / entry",    category:"Grounds & Roads",        year:2026, baseCost:10000, inflOverride:null, notes:"Board priority; base year — no inflation", status:"approved" },
+    { id:"cp2", name:"Neighborhood walking paths",   category:"Grounds & Roads",        year:2027, baseCost:15000, inflOverride:null, notes:"Placeholder — need contractor estimate",   status:"planned"  },
+    { id:"cp3", name:"Pool pump replacement",        category:"Pool & Amenities",       year:2030, baseCost:5000,  inflOverride:null, notes:"Cost estimate; replace as needed",          status:"planned"  },
+    { id:"cp4", name:"Pool liner replacement",       category:"Pool & Amenities",       year:2031, baseCost:9500,  inflOverride:null, notes:"Installed 2021 — assume 10-yr life",        status:"planned"  },
+    { id:"cp5", name:"Pool heater replacement",      category:"Pool & Amenities",       year:2031, baseCost:4500,  inflOverride:null, notes:"Installed 2021 — assume 10-yr life",        status:"planned"  },
+    { id:"cp6", name:"Pool cover (winter)",          category:"Pool & Amenities",       year:2032, baseCost:4500,  inflOverride:null, notes:"Installed 2022; 10-yr life",                status:"planned"  },
+    { id:"cp7", name:"Road re-grade & cap",          category:"Grounds & Roads",        year:2033, baseCost:75000, inflOverride:null, notes:"Next major road project — $75k base; timing TBD", status:"planned" },
+    { id:"cp8", name:"Pool filter replacement",      category:"Pool & Amenities",       year:2034, baseCost:4000,  inflOverride:null, notes:"Replaced 2024 — 10-yr life",               status:"planned"  },
+    { id:"cp9", name:"Pool mechanicals reserve",     category:"Pool & Amenities",       year:2035, baseCost:5000,  inflOverride:null, notes:"Placeholder for misc pool capital",         status:"planned"  }
+  ],
+  lotRoster: Array.from({length:29}, (_,i) => ({
+    id: i+1,
+    owner: "",
+    address: "Lot " + (i+1)
+  })),
+  duesPayments: [],
+  impactFeeRecords: [],
+  bankEntries: []
+};
+
+// ═══════════════════════════════════════════════════
+// 2. STATE MANAGEMENT
+// ═══════════════════════════════════════════════════
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('hoa_planner_v2');
+    if (saved) state = JSON.parse(saved);
+  } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('hoa_planner_v2', JSON.stringify(state));
+    const ind = document.getElementById('save-indicator');
+    ind.textContent = '✓ Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    ind.className = 'save-indicator saved';
+  } catch(e) {}
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hoa-plan-' + state.settings.fiscalYear + '.json';
+  a.click();
+}
+
+function importData(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      state = JSON.parse(e.target.result);
+      saveState();
+      renderAll();
+      alert('Plan imported successfully.');
+    } catch(err) { alert('Could not read file. Make sure it is a valid export.'); }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════
+// 3. FINANCIAL CALCULATIONS
+// ═══════════════════════════════════════════════════
+function budgetTotal() {
+  return state.budget.categories.reduce((sum, cat) =>
+    sum + cat.items.reduce((s, it) => s + (it.budget || 0), 0), 0);
+}
+
+function actualsTotal() {
+  return state.budget.categories.reduce((sum, cat) =>
+    sum + cat.items.reduce((s, it) => s + (it.actual || 0), 0), 0);
+}
+
+function budgetByCategory() {
+  return state.budget.categories.map(cat => ({
+    name: cat.name,
+    budget: cat.items.reduce((s, it) => s + (it.budget || 0), 0),
+    actual: cat.items.reduce((s, it) => s + (it.actual || 0), 0)
+  }));
+}
+
+function inflatedCost(project) {
+  const fy = state.settings.fiscalYear;
+  const yearsOut = Math.max(0, project.year - fy);
+  const rate = (project.inflOverride != null ? project.inflOverride : state.settings.capexInflation) / 100;
+  return Math.round(project.baseCost * Math.pow(1 + rate, yearsOut));
+}
+
+function capexByYear(year) {
+  return state.capitalProjects
+    .filter(p => p.status !== 'deferred' && p.year === year)
+    .reduce((sum, p) => sum + inflatedCost(p), 0);
+}
+
+function calcForecast(params = {}) {
+  const s = state.settings;
+  const assessment = params.assessment !== undefined ? params.assessment : s.assessmentPerLot;
+  const delinquent = params.delinquent || 0;
+  const fy = s.fiscalYear;
+  const opexBase = budgetTotal();
+  const opexRate = s.opexInflation / 100;
+
+  const rows = [];
+  let balance = s.startingReserve;
+  for (let i = 0; i < 10; i++) {
+    const year = fy + i;
+    const payingLots = s.lots - delinquent;
+    const dues = assessment * payingLots;
+    const impact = (state.impactFeeRecords || [])
+      .filter(r => r.date && r.date.startsWith(String(year)))
+      .reduce((sum, r) => sum + (r.amount || 0), 0);
+    const interest = Math.round(balance * (s.interestRate / 100));
+    const revenue = dues + impact + interest;
+    const opex = Math.round(opexBase * Math.pow(1 + opexRate, i));
+    const capex = capexByYear(year);
+    balance = Math.round(balance + revenue - opex - capex);
+    rows.push({ year, dues, impact, interest, revenue, opex, capex, endBalance: balance });
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════
+// 4. UTILITIES
+// ═══════════════════════════════════════════════════
+const CAT_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16','#f97316'];
+
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  const abs = Math.abs(Math.round(n));
+  return (n < 0 ? '-' : '') + '$' + abs.toLocaleString();
+}
+
+function uid() {
+  return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+function getHealth(rows) {
+  const mins = rows.map(r => r.endBalance);
+  const minR = Math.min(...mins);
+  const min30 = state.settings.minReserve;
+  if (minR < 0) return 'red';
+  if (rows.every(r => r.endBalance >= min30)) return 'green';
+  return 'yellow';
+}
+
+function statusLabel(s) {
+  const map = {planned:'Planned',approved:'Approved',inprogress:'In Progress',complete:'Complete',deferred:'Deferred'};
+  return map[s] || s;
+}
+
+const charts = {};
+function makeChart(id, config) {
+  if (charts[id]) { try { charts[id].destroy(); } catch(e){} }
+  const el = document.getElementById(id);
+  if (!el) return null;
+  charts[id] = new Chart(el, config);
+  return charts[id];
+}
+
+// ═══════════════════════════════════════════════════
+// 5. TAB NAVIGATION
+// ═══════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick').includes("'" + tab + "'")) b.classList.add('active');
+  });
+  if (tab === 'budget')   { renderBudget(); }
+  if (tab === 'capital')  { renderCapital(); }
+  if (tab === 'forecast') { renderForecast(); }
+  if (tab === 'scenarios'){ renderScenarios(); }
+  if (tab === 'lots')     { renderLotsTab(); }
+  if (tab === 'bank')     { renderBankTab(); }
+}
+
+// ═══════════════════════════════════════════════════
+// 6. SETTINGS TAB
+// ═══════════════════════════════════════════════════
+function renderSettings() {
+  const s = state.settings;
+  document.getElementById('header-title').textContent =
+    s.hoaName + ' — Financial Planning System — FY ' + s.fiscalYear;
+  document.getElementById('settings-form').innerHTML = `
+    <div class="field"><label>HOA Name</label><input type="text" id="s-name" value="${s.hoaName}"></div>
+    <div class="field"><label>Fiscal Year</label><input type="number" id="s-fy" value="${s.fiscalYear}" min="2020" max="2040"></div>
+    <div class="field"><label>Number of Lots (dues-paying)</label><input type="number" id="s-lots" value="${s.lots}" min="1"><span class="hint">Update if community grows</span></div>
+    <div class="field"><label>Annual Dues / Lot ($)</label><input type="number" id="s-assess" value="${s.assessmentPerLot}" min="0"></div>
+    <div class="field"><label>Starting Reserve Balance ($)</label><input type="number" id="s-startres" value="${s.startingReserve}" min="0"><span class="hint">Balance on Jan 1 of fiscal year</span></div>
+    <div class="field"><label>Minimum Reserve Target ($)</label><input type="number" id="s-minres" value="${s.minReserve}" min="0"><span class="hint">Board-set floor — model flags if below</span></div>
+    <div class="field"><label>Reserve Interest Rate (%)</label><input type="number" id="s-rate" value="${s.interestRate}" step="0.1" min="0"><span class="hint">HYSA or money market rate</span></div>
+    <div class="field"><label>Default Opex Inflation (%)</label><input type="number" id="s-opinfl" value="${s.opexInflation}" step="0.1" min="0"><span class="hint">Applied to budget in forecast years</span></div>
+    <div class="field"><label>Default Capital Inflation (%)</label><input type="number" id="s-capinfl" value="${s.capexInflation}" step="0.1" min="0"><span class="hint">Applied to capital project base costs</span></div>
+  `;
+  // Live preview for modal inflation
+  document.querySelectorAll('#s-capinfl,#mp-cost,#mp-year,#mp-infl').forEach(el => {
+    if (el) el.addEventListener('input', updateModalPreview);
+  });
+}
+
+function saveSettings() {
+  const s = state.settings;
+  s.hoaName       = document.getElementById('s-name').value;
+  s.fiscalYear    = parseInt(document.getElementById('s-fy').value) || 2026;
+  s.lots          = parseInt(document.getElementById('s-lots').value) || 29;
+  s.assessmentPerLot = parseFloat(document.getElementById('s-assess').value) || 0;
+  s.startingReserve  = parseFloat(document.getElementById('s-startres').value) || 0;
+  s.minReserve    = parseFloat(document.getElementById('s-minres').value) || 0;
+  s.interestRate  = parseFloat(document.getElementById('s-rate').value) || 0;
+  s.opexInflation = parseFloat(document.getElementById('s-opinfl').value) || 0;
+  s.capexInflation= parseFloat(document.getElementById('s-capinfl').value) || 0;
+  saveState();
+  renderSettings();
+  const el = document.getElementById('settings-saved');
+  el.style.display = 'inline';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+// ═══════════════════════════════════════════════════
+// 7. BUDGET TAB
+// ═══════════════════════════════════════════════════
+function renderBudget() {
+  renderBudgetTable();
+  renderBudgetCharts();
+  renderHouseholdBreakdown();
+}
+
+function renderHouseholdBreakdown() {
+  const lots = state.settings.lots || 1;
+  const totalBudget = budgetTotal();
+  const perLot = totalBudget / lots;
+  const semiAnnual = perLot / 2;
+  const monthly = perLot / 12;
+  const cats = budgetByCategory();
+
+  document.getElementById('household-sub').textContent =
+    `Based on ${lots} lots — shows each household's share of the ${state.settings.fiscalYear} operating budget`;
+
+  let html = `<thead><tr style="border-bottom:2px solid #e2e8f0;">
+    <th style="text-align:left;padding:8px 10px;color:#64748b;font-weight:600;font-size:.78rem;">Category</th>
+    <th style="text-align:right;padding:8px 10px;color:#64748b;font-weight:600;font-size:.78rem;">Total Budget</th>
+    <th style="text-align:right;padding:8px 10px;color:#64748b;font-weight:600;font-size:.78rem;">Per Household / Year</th>
+    <th style="text-align:right;padding:8px 10px;color:#64748b;font-weight:600;font-size:.78rem;">Per Household / Month</th>
+    <th style="text-align:right;padding:8px 10px;color:#64748b;font-weight:600;font-size:.78rem;">% of Budget</th>
+  </tr></thead><tbody>`;
+
+  cats.forEach(cat => {
+    const pct = totalBudget > 0 ? (cat.budget / totalBudget * 100).toFixed(1) : '0.0';
+    html += `<tr style="border-bottom:1px solid #f1f5f9;">
+      <td style="padding:9px 10px;font-weight:500">${escHtml(cat.name)}</td>
+      <td style="text-align:right;padding:9px 10px">${fmt(cat.budget)}</td>
+      <td style="text-align:right;padding:9px 10px">${fmt(cat.budget / lots)}</td>
+      <td style="text-align:right;padding:9px 10px;color:#64748b">${fmt(cat.budget / lots / 12)}</td>
+      <td style="text-align:right;padding:9px 10px;color:#94a3b8">${pct}%</td>
+    </tr>`;
+  });
+
+  html += `<tr style="border-top:2px solid #1e293b;background:#f8fafc;font-weight:700;">
+    <td style="padding:10px 10px;">TOTAL OPERATING</td>
+    <td style="text-align:right;padding:10px 10px">${fmt(totalBudget)}</td>
+    <td style="text-align:right;padding:10px 10px">${fmt(perLot)}</td>
+    <td style="text-align:right;padding:10px 10px">${fmt(monthly)}</td>
+    <td style="text-align:right;padding:10px 10px">100%</td>
+  </tr></tbody>`;
+
+  html += `<tfoot><tr><td colspan="5" style="padding:12px 10px 4px;font-size:.8rem;color:#64748b;">
+    Annual assessment: <strong>${fmt(state.settings.assessmentPerLot)}/lot</strong> ·
+    Operating cost per lot: <strong>${fmt(perLot)}</strong> ·
+    Surplus per lot (assessment minus opex): <strong style="color:${state.settings.assessmentPerLot - perLot >= 0 ? '#22c55e' : '#ef4444'}">${fmt(state.settings.assessmentPerLot - perLot)}</strong>
+    (goes to reserve)
+  </td></tr></tfoot>`;
+
+  document.getElementById('household-table').innerHTML = html;
+}
+
+function renderBudgetTable() {
+  const cats = state.budget.categories;
+  const totalBudget = budgetTotal();
+  const totalActual = actualsTotal();
+
+  let html = `<table class="budget-table">
+    <thead><tr>
+      <th style="min-width:220px">Line Item</th>
+      <th>Budget</th><th>Actual YTD</th><th>Remaining</th><th>% Used</th><th></th>
+    </tr></thead><tbody>`;
+
+  cats.forEach((cat, ci) => {
+    const catBudget = cat.items.reduce((s,it) => s + (it.budget||0), 0);
+    const catActual = cat.items.reduce((s,it) => s + (it.actual||0), 0);
+    html += `<tr class="cat-header">
+      <td colspan="5"><strong>${cat.name}</strong></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" title="Add line item" onclick="addBudgetItem('${cat.id}')">+</button>
+        <button class="icon-btn" title="Delete category" onclick="deleteCategory('${cat.id}')">🗑</button>
+      </div></td>
+    </tr>`;
+
+    cat.items.forEach((item, ii) => {
+      const remaining = (item.budget||0) - (item.actual||0);
+      const pct = item.budget > 0 ? Math.round((item.actual||0) / item.budget * 100) : 0;
+      const pillClass = item.actual === 0 ? 'util-empty' : pct >= 100 ? 'util-over' : pct >= 80 ? 'util-warn' : 'util-ok';
+      const pillLabel = item.actual === 0 ? '—' : pct + '%';
+
+      html += `<tr>
+        <td class="editable-cell editable-name" data-type="name" data-ci="${ci}" data-ii="${ii}">${escHtml(item.name)}</td>
+        <td class="editable-cell text-right" data-type="budget" data-ci="${ci}" data-ii="${ii}">${fmt(item.budget)}</td>
+        <td class="editable-cell text-right" data-type="actual" data-ci="${ci}" data-ii="${ii}">${fmt(item.actual)}</td>
+        <td class="text-right" style="color:${remaining < 0 ? '#dc2626' : '#16a34a'}">${fmt(remaining)}</td>
+        <td class="text-right"><span class="util-pill ${pillClass}">${pillLabel}</span></td>
+        <td><div class="row-actions">
+          <button class="icon-btn" title="Delete" onclick="deleteBudgetItem('${cat.id}','${item.id}')">🗑</button>
+        </div></td>
+      </tr>`;
+    });
+
+    html += `<tr class="cat-footer">
+      <td>  ${cat.name} Total</td>
+      <td class="text-right">${fmt(catBudget)}</td>
+      <td class="text-right">${fmt(catActual)}</td>
+      <td class="text-right" style="color:${catBudget-catActual<0?'#dc2626':'#16a34a'}">${fmt(catBudget-catActual)}</td>
+      <td class="text-right"><span class="util-pill ${catActual===0?'util-empty':catActual/catBudget>=1?'util-over':catActual/catBudget>=.8?'util-warn':'util-ok'}">${catBudget>0?Math.round(catActual/catBudget*100)+'%':'—'}</span></td>
+      <td></td>
+    </tr>
+    <tr class="add-item-row"><td colspan="6">
+      <button class="btn btn-ghost btn-sm" onclick="addBudgetItem('${cat.id}')">+ Add line item to ${escHtml(cat.name)}</button>
+    </td></tr>`;
+  });
+
+  html += `<tr class="total-row">
+    <td>TOTAL OPERATING EXPENSES</td>
+    <td class="text-right">${fmt(totalBudget)}</td>
+    <td class="text-right">${fmt(totalActual)}</td>
+    <td class="text-right">${fmt(totalBudget-totalActual)}</td>
+    <td class="text-right">${totalBudget>0?Math.round(totalActual/totalBudget*100)+'%':'—'}</td>
+    <td></td>
+  </tr></tbody></table>
+  <div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="addCategory()">+ Add new category</button></div>`;
+
+  document.getElementById('budget-table-wrap').innerHTML = html;
+}
+
+function renderBudgetCharts() {
+  const cats = budgetByCategory();
+  const labels = cats.map(c => c.name);
+  const budgets = cats.map(c => c.budget);
+  const actuals = cats.map(c => c.actual);
+  const total = budgetTotal();
+  document.getElementById('budget-total-display').textContent = fmt(total);
+
+  makeChart('budget-donut', {
+    type:'doughnut',
+    data:{ labels, datasets:[{data:budgets, backgroundColor:CAT_COLORS, borderWidth:3, borderColor:'white'}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.parsed)+' ('+Math.round(ctx.parsed/total*100)+'%)'}} },
+      cutout:'68%' }
+  });
+
+  const legendHtml = cats.map((c,i) =>
+    `<span class="legend-pill"><span class="legend-dot" style="background:${CAT_COLORS[i]}"></span>${c.name}</span>`
+  ).join('');
+  document.getElementById('budget-legend').innerHTML = legendHtml;
+
+  makeChart('budget-bar', {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Budget', data:budgets, backgroundColor:'rgba(59,130,246,.7)', borderRadius:4},
+      {label:'Actual YTD', data:actuals, backgroundColor:'rgba(16,185,129,.7)', borderRadius:4}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{labels:{font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.parsed.y)}} },
+      scales:{ y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f1f5f9'}}, x:{grid:{display:false}} }
+    }
+  });
+}
+
+function addCategory() {
+  const name = prompt('New category name:');
+  if (!name || !name.trim()) return;
+  state.budget.categories.push({ id: uid(), name: name.trim(), items: [] });
+  saveState();
+  renderBudgetTable();
+}
+
+function addBudgetItem(catId) {
+  const cat = state.budget.categories.find(c => c.id === catId);
+  if (!cat) return;
+  cat.items.push({ id: uid(), name: 'New line item', budget: 0, actual: 0, notes: '' });
+  saveState();
+  renderBudgetTable();
+}
+
+function deleteBudgetItem(catId, itemId) {
+  const cat = state.budget.categories.find(c => c.id === catId);
+  if (!cat) return;
+  if (!confirm('Delete this line item?')) return;
+  cat.items = cat.items.filter(it => it.id !== itemId);
+  saveState();
+  renderBudget();
+}
+
+function deleteCategory(catId) {
+  const cat = state.budget.categories.find(c => c.id === catId);
+  if (!cat) return;
+  if (!confirm(`Delete category "${cat.name}" and all its line items?`)) return;
+  state.budget.categories = state.budget.categories.filter(c => c.id !== catId);
+  saveState();
+  renderBudget();
+}
+
+// ═══════════════════════════════════════════════════
+// 8. INLINE EDITING
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', e => {
+  const cell = e.target.closest('.editable-cell');
+  if (!cell || cell.querySelector('input')) return;
+
+  const ci = parseInt(cell.dataset.ci);
+  const ii = parseInt(cell.dataset.ii);
+  const type = cell.dataset.type;
+  const item = state.budget.categories[ci]?.items[ii];
+  if (!item) return;
+
+  const isNum = (type === 'budget' || type === 'actual');
+  const curVal = isNum ? (item[type] || 0) : item.name;
+
+  const input = document.createElement('input');
+  input.type = isNum ? 'number' : 'text';
+  input.value = curVal;
+  input.min = '0';
+  input.style.cssText = 'width:100%;border:none;background:transparent;font-size:inherit;outline:2px solid #3b82f6;border-radius:3px;padding:2px 6px;' + (isNum ? 'text-align:right;' : '');
+  cell.textContent = '';
+  cell.appendChild(input);
+  input.focus(); input.select();
+
+  function commit() {
+    const val = isNum ? (parseFloat(input.value) || 0) : input.value.trim() || item.name;
+    item[type === 'name' ? 'name' : type] = val;
+    saveState();
+    renderBudget();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e2 => {
+    if (e2.key === 'Enter') { e2.preventDefault(); input.blur(); }
+    if (e2.key === 'Escape') renderBudgetTable();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 9. CAPITAL PLAN TAB
+// ═══════════════════════════════════════════════════
+function renderCapital() {
+  renderCapitalTable();
+  renderCapitalCharts();
+  renderCapitalSummary();
+}
+
+function renderCapitalTable() {
+  const rows = state.capitalProjects.map(p => {
+    const infl = inflatedCost(p);
+    const statusClass = 'status-' + p.status;
+    return `<tr>
+      <td><span class="status-badge ${statusClass}">${statusLabel(p.status)}</span></td>
+      <td><strong>${escHtml(p.name)}</strong>${p.notes ? `<div style="font-size:.72rem;color:#94a3b8;margin-top:2px;cursor:help;" title="${escHtml(p.notes)}">${escHtml(p.notes.length > 90 ? p.notes.slice(0,90) + '…' : p.notes)}</div>` : ''}</td>
+      <td>${escHtml(p.category)}</td>
+      <td style="font-weight:700;">${p.year}</td>
+      <td class="text-right">${fmt(p.baseCost)}</td>
+      <td class="text-right inflated-col">${p.inflOverride != null ? p.inflOverride+'%' : state.settings.capexInflation+'% (default)'}</td>
+      <td class="text-right" style="font-weight:700;${p.baseCost!==infl?'color:#d97706':''}">
+        ${fmt(infl)}${p.baseCost !== infl ? `<div style="font-size:.68rem;color:#94a3b8;">base: ${fmt(p.baseCost)}</div>` : ''}
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="openProjectModal('${p.id}')">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteProject('${p.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const fy = state.settings.fiscalYear;
+  const totalInflated = state.capitalProjects
+    .filter(p => p.status !== 'deferred')
+    .reduce((s, p) => s + inflatedCost(p), 0);
+
+  document.getElementById('capital-table').innerHTML = `
+    <thead><tr>
+      <th>Status</th><th style="min-width:200px">Project</th><th>Category</th><th>Year</th>
+      <th class="text-right">Base Cost</th><th class="text-right">Infl Rate</th>
+      <th class="text-right">Inflated Cost</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr style="background:#f0f4f8;font-weight:700;">
+      <td colspan="6" style="padding:10px 12px;">TOTAL (active projects)</td>
+      <td class="text-right" style="padding:10px 12px;">${fmt(totalInflated)}</td><td></td>
+    </tr></tfoot>`;
+}
+
+function renderCapitalCharts() {
+  const fy = state.settings.fiscalYear;
+  const years = Array.from({length:10}, (_,i) => fy+i);
+  const data = years.map(y => capexByYear(y));
+
+  makeChart('capital-bar', {
+    type:'bar',
+    data:{ labels:years, datasets:[{
+      label:'Inflated Capex',
+      data,
+      backgroundColor: data.map(v => v >= 50000 ? '#ef4444' : v > 0 ? '#f59e0b' : '#e2e8f0'),
+      borderRadius: 5
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.y)}} },
+      scales:{ y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f1f5f9'}}, x:{grid:{display:false}} }
+    }
+  });
+}
+
+function renderCapitalSummary() {
+  const active = state.capitalProjects.filter(p => p.status !== 'deferred');
+  const fy = state.settings.fiscalYear;
+  const byYear = {};
+  active.forEach(p => {
+    if (!byYear[p.year]) byYear[p.year] = [];
+    byYear[p.year].push(p);
+  });
+
+  const totalInflated = active.reduce((s, p) => s + inflatedCost(p), 0);
+  const bigYear = Object.entries(byYear).sort((a,b) =>
+    b[1].reduce((s,p) => s+inflatedCost(p),0) - a[1].reduce((s,p) => s+inflatedCost(p),0))[0];
+
+  document.getElementById('capital-summary').innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div class="kpi-card"><div class="kpi-label">Total Projects</div><div class="kpi-value">${active.length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total Inflated Cost</div><div class="kpi-value" style="font-size:1.3rem;">${fmt(totalInflated)}</div></div>
+      ${bigYear ? `<div class="kpi-card" style="grid-column:1/-1"><div class="kpi-label">⚠ Peak Capex Year</div><div class="kpi-value">${bigYear[0]}</div><div class="kpi-sub">${fmt(bigYear[1].reduce((s,p)=>s+inflatedCost(p),0))} in that year</div></div>` : ''}
+    </div>
+    <div style="font-size:.78rem;line-height:1.8;">
+      ${Object.entries(byYear).sort((a,b) => a[0]-b[0]).map(([yr, projs]) =>
+        `<div style="margin-bottom:6px;"><strong>${yr}:</strong> ${projs.map(p => `${p.name} (${fmt(inflatedCost(p))})`).join(' · ')}</div>`
+      ).join('')}
+    </div>`;
+}
+
+// ── PROJECT MODAL ──
+let _editingProjectId = null;
+
+function openProjectModal(id) {
+  _editingProjectId = id;
+  document.getElementById('modal-title').textContent = id ? 'Edit Capital Project' : 'Add Capital Project';
+
+  // Populate category options from budget categories
+  const catSel = document.getElementById('mp-category');
+  const existingCats = new Set(['Administrative','Grounds & Roads','Insurance & Professional','Pool & Amenities','Utilities','Other']);
+  state.budget.categories.forEach(c => existingCats.add(c.name));
+  catSel.innerHTML = [...existingCats].map(c => `<option>${c}</option>`).join('');
+
+  if (id) {
+    const p = state.capitalProjects.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('mp-name').value = p.name;
+    catSel.value = p.category;
+    document.getElementById('mp-status').value = p.status;
+    document.getElementById('mp-year').value = p.year;
+    document.getElementById('mp-cost').value = p.baseCost;
+    document.getElementById('mp-infl').value = p.inflOverride != null ? p.inflOverride : '';
+    document.getElementById('mp-notes').value = p.notes || '';
+  } else {
+    document.getElementById('mp-name').value = '';
+    document.getElementById('mp-status').value = 'planned';
+    document.getElementById('mp-year').value = state.settings.fiscalYear;
+    document.getElementById('mp-cost').value = '';
+    document.getElementById('mp-infl').value = '';
+    document.getElementById('mp-notes').value = '';
+  }
+
+  updateModalPreview();
+  document.getElementById('project-modal').classList.add('open');
+  document.getElementById('mp-name').focus();
+}
+
+function updateModalPreview() {
+  const cost = parseFloat(document.getElementById('mp-cost')?.value) || 0;
+  const year = parseInt(document.getElementById('mp-year')?.value) || state.settings.fiscalYear;
+  const inflStr = document.getElementById('mp-infl')?.value;
+  const rate = inflStr ? parseFloat(inflStr) : state.settings.capexInflation;
+  const fy = state.settings.fiscalYear;
+  const yearsOut = Math.max(0, year - fy);
+  const inflated = Math.round(cost * Math.pow(1 + rate/100, yearsOut));
+  const el = document.getElementById('modal-inflated-preview');
+  if (el && cost > 0) {
+    el.textContent = `Inflated cost in ${year}: ${fmt(inflated)}  (${rate}%/yr × ${yearsOut} years from ${fy})`;
+  } else if (el) { el.textContent = ''; }
+}
+
+['mp-cost','mp-year','mp-infl'].forEach(id => {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateModalPreview);
+  }, 100);
+});
+
+function saveProject() {
+  const name = document.getElementById('mp-name').value.trim();
+  if (!name) { alert('Project name required.'); return; }
+  const project = {
+    id: _editingProjectId || uid(),
+    name,
+    category: document.getElementById('mp-category').value,
+    status: document.getElementById('mp-status').value,
+    year: parseInt(document.getElementById('mp-year').value) || state.settings.fiscalYear,
+    baseCost: parseFloat(document.getElementById('mp-cost').value) || 0,
+    inflOverride: document.getElementById('mp-infl').value ? parseFloat(document.getElementById('mp-infl').value) : null,
+    notes: document.getElementById('mp-notes').value.trim()
+  };
+
+  if (_editingProjectId) {
+    const idx = state.capitalProjects.findIndex(p => p.id === _editingProjectId);
+    if (idx >= 0) state.capitalProjects[idx] = project;
+  } else {
+    state.capitalProjects.push(project);
+  }
+  // Sort by year
+  state.capitalProjects.sort((a, b) => a.year - b.year);
+  saveState();
+  closeModal();
+  renderCapital();
+}
+
+function deleteProject(id) {
+  const p = state.capitalProjects.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Delete "${p.name}"?`)) return;
+  state.capitalProjects = state.capitalProjects.filter(x => x.id !== id);
+  saveState();
+  renderCapital();
+}
+
+function closeModal() {
+  document.getElementById('project-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════
+// 10. RESERVE FORECAST TAB
+// ═══════════════════════════════════════════════════
+function renderForecast() {
+  const rows = calcForecast();
+  const minR = Math.min(...rows.map(r => r.endBalance));
+  const minRow = rows.find(r => r.endBalance === minR);
+  const health = getHealth(rows);
+  const minTarget = state.settings.minReserve;
+  const allOk = rows.every(r => r.endBalance >= minTarget);
+
+  // KPI cards
+  document.getElementById('forecast-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-icon">${health==='green'?'✅':health==='yellow'?'⚠️':'🚨'}</div><div class="kpi-label">10-Year Health</div>
+      <div class="kpi-value" style="font-size:1.1rem;color:${health==='green'?'#16a34a':health==='yellow'?'#d97706':'#dc2626'}">${allOk?'All years OK':'Caution — see below'}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📉</div><div class="kpi-label">Lowest Reserve (any yr)</div>
+      <div class="kpi-value" style="color:${minR<0?'#dc2626':minR<minTarget?'#d97706':'#16a34a'}">${fmt(minR)}</div>
+      <div class="kpi-sub">In ${minRow?.year}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">🔮</div><div class="kpi-label">Ending Reserve (${state.settings.fiscalYear+9})</div>
+      <div class="kpi-value">${fmt(rows[9].endBalance)}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📊</div><div class="kpi-label">Total 10-yr Operating</div>
+      <div class="kpi-value" style="font-size:1.3rem;">${fmt(rows.reduce((s,r)=>s+r.opex,0))}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">🔧</div><div class="kpi-label">Total 10-yr Capital</div>
+      <div class="kpi-value" style="font-size:1.3rem;">${fmt(rows.reduce((s,r)=>s+r.capex,0))}</div></div>
+  `;
+
+  // Chart
+  const fy = state.settings.fiscalYear;
+  const colors = rows.map(r => r.endBalance < 0 ? '#ef4444' : r.endBalance < minTarget ? '#f59e0b' : '#3b82f6');
+  const lineColor = health === 'red' ? '#ef4444' : health === 'yellow' ? '#f59e0b' : '#3b82f6';
+  const fillColor = health === 'red' ? 'rgba(239,68,68,.08)' : health === 'yellow' ? 'rgba(245,158,11,.08)' : 'rgba(59,130,246,.08)';
+
+  makeChart('forecast-chart', {
+    type:'line',
+    data:{ labels:rows.map(r=>r.year), datasets:[
+      { label:'Reserve Balance', data:rows.map(r=>r.endBalance),
+        borderColor:lineColor, backgroundColor:fillColor, borderWidth:3,
+        pointRadius:7, pointBackgroundColor:colors, pointBorderColor:'white', pointBorderWidth:2, fill:true, tension:.35 },
+      { label:'Minimum Target', data:Array(10).fill(minTarget),
+        borderColor:'#ef4444', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{display:false},
+        tooltip:{callbacks:{
+          label:ctx=>' '+ctx.dataset.label+':  '+fmt(ctx.parsed.y),
+          afterBody:ctx=>{ const r=rows[ctx[0].dataIndex]; return r.capex>0?[`  Capital: ${fmt(r.capex)}`]:[]; }
+        }}},
+      scales:{ y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f1f5f9'}}, x:{grid:{display:false}} }
+    }
+  });
+
+  // Table
+  const fy0 = state.settings.fiscalYear;
+  let thtml = `<thead><tr>
+    <th>Year</th><th class="text-right">Opening</th><th class="text-right">Dues Revenue</th>
+    <th class="text-right">Impact Fees</th><th class="text-right">Interest</th>
+    <th class="text-right">Total In</th><th class="text-right">Opex</th>
+    <th class="text-right">Capital</th><th class="text-right">Ending Balance</th><th class="text-right">vs. Min</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((r, i) => {
+    const opening = i === 0 ? state.settings.startingReserve : rows[i-1].endBalance;
+    const vsMin = r.endBalance - minTarget;
+    const balClass = r.endBalance < 0 ? 'balance-bad' : r.endBalance < minTarget ? 'balance-warn' : 'balance-ok';
+    const vsClass = vsMin < 0 ? 'fail' : vsMin < 10000 ? 'warn' : 'pass';
+    thtml += `<tr>
+      <td><strong>${r.year}</strong></td>
+      <td class="text-right text-muted">${fmt(opening)}</td>
+      <td class="text-right">${fmt(r.dues)}</td>
+      <td class="text-right">${r.impact > 0 ? fmt(r.impact) : '<span class="text-muted">—</span>'}</td>
+      <td class="text-right">${fmt(r.interest)}</td>
+      <td class="text-right" style="font-weight:600;">${fmt(r.revenue)}</td>
+      <td class="text-right" style="color:#dc2626;">${fmt(r.opex)}</td>
+      <td class="text-right" style="color:${r.capex>0?'#d97706':'#94a3b8'};font-weight:${r.capex>0?700:400};">${r.capex>0?fmt(r.capex):'—'}</td>
+      <td class="text-right ${balClass}" style="font-weight:700;">${fmt(r.endBalance)}</td>
+      <td class="text-right ${vsClass}">${vsMin>=0?'+':''}${fmt(vsMin)}</td>
+    </tr>`;
+  });
+
+  thtml += `<tr style="background:#f0f4f8;font-weight:700;"><td>10-YR TOTAL</td><td></td>
+    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.dues,0))}</td>
+    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.impact,0))}</td>
+    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.interest,0))}</td>
+    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.revenue,0))}</td>
+    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.opex,0))}</td>
+    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.capex,0))}</td>
+    <td class="text-right">${fmt(rows[9].endBalance)}</td><td></td>
+  </tr></tbody>`;
+
+  document.getElementById('forecast-table').innerHTML = thtml;
+}
+
+// ═══════════════════════════════════════════════════
+// 11. SCENARIOS TAB
+// ═══════════════════════════════════════════════════
+function renderScenarios() {
+  updateScenario();
+  renderAllScenariosTable();
+}
+
+function resetScenario() {
+  document.getElementById('sc-dues-slider').value = state.settings.assessmentPerLot;
+  document.getElementById('sc-dues-input').value = state.settings.assessmentPerLot;
+  document.getElementById('sc-delinq-slider').value = 0;
+  updateScenario();
+}
+
+function syncDuesInput(input) {
+  const v = parseInt(input.value) || state.settings.assessmentPerLot;
+  document.getElementById('sc-dues-slider').value = Math.min(2500, Math.max(1500, v));
+  updateScenario();
+}
+
+function updateScenario() {
+  const dues = parseInt(document.getElementById('sc-dues-slider').value);
+  const delinq = parseInt(document.getElementById('sc-delinq-slider').value);
+  document.getElementById('sc-dues-input').value = dues;
+
+  document.getElementById('sc-dues-display').textContent = '$' + dues.toLocaleString();
+  document.getElementById('sc-monthly-display').textContent = '$' + Math.round(dues/12).toLocaleString() + ' / month per lot';
+
+  const delinqCost = delinq * dues;
+  document.getElementById('sc-delinq-display').textContent = delinq + (delinq === 1 ? ' lot' : ' lots');
+  document.getElementById('sc-delinq-impact').textContent = delinq === 0 ? 'No revenue impact' :
+    '−' + fmt(delinqCost) + '/yr in lost dues revenue (' + delinq + ' of ' + state.settings.lots + ' lots)';
+
+  const basePlan = calcForecast();
+  const scenario = calcForecast({ assessment: dues, delinquent: delinq });
+  const health = getHealth(scenario);
+  const minR = Math.min(...scenario.map(r => r.endBalance));
+  const minYear = scenario.find(r => r.endBalance === minR)?.year;
+
+  const healthEl = document.getElementById('sc-health');
+  healthEl.className = 'scenario-health ' + health;
+  const allOk = scenario.every(r => r.endBalance >= state.settings.minReserve);
+  healthEl.innerHTML = health === 'green'
+    ? `✓ Financially sustainable — all 10 years above $${state.settings.minReserve.toLocaleString()} minimum`
+    : health === 'yellow'
+    ? `⚠ Below minimum in some years — lowest: ${fmt(minR)} in ${minYear}`
+    : `✗ Reserves go negative in ${minYear} — not sustainable`;
+
+  // Comparison chart
+  makeChart('scenario-chart', {
+    type:'line',
+    data:{ labels: basePlan.map(r=>r.year), datasets:[
+      { label:'Current Plan', data:basePlan.map(r=>r.endBalance),
+        borderColor:'#3b82f6', borderWidth:2, pointRadius:4, fill:false, tension:.3,
+        pointBackgroundColor:'#3b82f6', borderDash:[] },
+      { label:'Scenario', data:scenario.map(r=>r.endBalance),
+        borderColor:'#f59e0b', borderWidth:3, pointRadius:5, fill:false, tension:.3,
+        pointBackgroundColor:scenario.map(r => r.endBalance < state.settings.minReserve ? '#ef4444' : '#f59e0b') },
+      { label:'Min Target', data:Array(10).fill(state.settings.minReserve),
+        borderColor:'#ef4444', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{labels:{font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmt(ctx.parsed.y)}} },
+      scales:{ y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f1f5f9'}}, x:{grid:{display:false}} }
+    }
+  });
+
+  // Mini comparison table
+  const metrics = [
+    ['2026 Revenue', fmt(basePlan[0].revenue), fmt(scenario[0].revenue)],
+    ['2026 Ending Reserve', fmt(basePlan[0].endBalance), fmt(scenario[0].endBalance)],
+    ['Lowest Reserve (10yr)', fmt(Math.min(...basePlan.map(r=>r.endBalance))), fmt(minR)],
+    ['All years ≥ min?', basePlan.every(r=>r.endBalance>=state.settings.minReserve)?'<span class="pass">✓ Yes</span>':'<span class="warn">⚠ No</span>',
+      allOk?'<span class="pass">✓ Yes</span>':'<span class="fail">✗ No</span>'],
+    ['Ending Reserve '+state.settings.fiscalYear+9, fmt(basePlan[9].endBalance), fmt(scenario[9].endBalance)]
+  ];
+  document.getElementById('sc-compare-table').innerHTML = `
+    <thead><tr><th>Metric</th><th>Current Plan<br><span style="font-weight:400;font-size:.68rem;color:#64748b;">$${state.settings.assessmentPerLot.toLocaleString()}/lot, 0 delinquent</span></th><th>Scenario<br><span style="font-weight:400;font-size:.68rem;color:#64748b;">$${dues.toLocaleString()}/lot, ${delinq} delinquent</span></th></tr></thead>
+    <tbody>${metrics.map(([label,base,sc]) => `<tr><td>${label}</td><td class="base-row" style="text-align:right">${base}</td><td class="scenario-row" style="text-align:right">${sc}</td></tr>`).join('')}</tbody>`;
+
+  renderAllScenariosTable(dues);
+}
+
+function renderAllScenariosTable(activeAmt) {
+  const delinq = parseInt(document.getElementById('sc-delinq-slider')?.value || 0);
+  const levels = [1500,1600,1700,1800,1900,2000,2100,2200];
+  const minTarget = state.settings.minReserve;
+  let html = `<thead><tr>
+    <th>Annual Dues</th><th style="text-align:right">Per Month</th><th style="text-align:right">2026 Surplus</th>
+    <th style="text-align:right">Lowest Reserve</th><th style="text-align:right">2033 Reserve</th>
+    <th style="text-align:right">Ending ${state.settings.fiscalYear+9}</th><th style="text-align:right">All yrs ≥ min?</th>
+  </tr></thead><tbody>`;
+
+  levels.forEach(amt => {
+    const rows = calcForecast({ assessment: amt, delinquent: delinq });
+    const minR = Math.min(...rows.map(r => r.endBalance));
+    const r2033 = rows.find(r => r.year === 2033)?.endBalance;
+    const allOk = rows.every(r => r.endBalance >= minTarget);
+    const surplus0 = rows[0].revenue - rows[0].opex;
+    const isActive = amt === (activeAmt || state.settings.assessmentPerLot);
+    const minFmt = minR < 0 ? `<span class="fail">${fmt(minR)}</span>` : minR < minTarget ? `<span class="warn">${fmt(minR)}</span>` : `<span class="pass">${fmt(minR)}</span>`;
+    const r2033fmt = !r2033 ? '—' : r2033 < 0 ? `<span class="fail">${fmt(r2033)}</span>` : r2033 < minTarget ? `<span class="warn">${fmt(r2033)}</span>` : `<span class="pass">${fmt(r2033)}</span>`;
+    const allLabel = allOk ? `<span class="pass">✓ Yes</span>` : minR < 0 ? `<span class="fail">✗ Negative</span>` : `<span class="warn">⚠ Some low</span>`;
+    html += `<tr${isActive?" class='active-row'":""}>
+      <td>${isActive?'▶ ':''}<strong>$${amt.toLocaleString()}/lot${amt===state.settings.assessmentPerLot?' <em style="color:#94a3b8;font-weight:400">(plan)</em>':''}</strong></td>
+      <td style="text-align:right">$${Math.round(amt/12)}/mo</td>
+      <td style="text-align:right">${fmt(surplus0)}</td>
+      <td style="text-align:right">${minFmt}</td>
+      <td style="text-align:right">${r2033fmt}</td>
+      <td style="text-align:right">${fmt(rows[9].endBalance)}</td>
+      <td style="text-align:right">${allLabel}</td>
+    </tr>`;
+  });
+
+  document.getElementById('all-scenarios-table').innerHTML = html + '</tbody>';
+}
+
+// ═══════════════════════════════════════════════════
+// 12. HOMEOWNER VIEW
+// ═══════════════════════════════════════════════════
+function showHomeowner() {
+  renderHomeowner();
+  document.getElementById('ho-overlay').classList.add('open');
+  window.scrollTo(0, 0);
+}
+
+function hideHomeowner() {
+  document.getElementById('ho-overlay').classList.remove('open');
+}
+
+function renderHomeowner() {
+  const s = state.settings;
+  document.getElementById('ho-title').textContent = s.hoaName;
+  document.getElementById('ho-subtitle').textContent = `FY ${s.fiscalYear} — Community Financial Summary`;
+
+  const total = budgetTotal();
+  const cats = budgetByCategory();
+  const rows = calcForecast();
+  const minR = Math.min(...rows.map(r => r.endBalance));
+  const health = getHealth(rows);
+  const activeProjsThisYear = state.capitalProjects.filter(p => p.status !== 'deferred' && p.year === s.fiscalYear);
+
+  const catRows = cats.map((c,i) => `
+    <tr>
+      <td><span class="ho-cat-dot" style="background:${CAT_COLORS[i]}"></span>${c.name}</td>
+      <td style="text-align:right;font-weight:600;">${fmt(c.budget)}</td>
+      <td style="text-align:right;color:#64748b;">${fmt(Math.round(c.budget/s.lots))}/lot</td>
+      <td style="text-align:right;color:#64748b;">${total>0?Math.round(c.budget/total*100)+'%':'—'}</td>
+    </tr>`).join('');
+
+  const futureProjects = state.capitalProjects
+    .filter(p => p.status !== 'deferred' && p.year >= s.fiscalYear)
+    .sort((a,b) => a.year - b.year);
+
+  const projRows = futureProjects.map(p => {
+    const ic = inflatedCost(p);
+    const isBig = ic >= 50000;
+    return `<tr${isBig?" class='ho-big-project'":""}>
+      <td>${isBig?'⚠ ':''}${p.name}</td>
+      <td>${p.category}</td>
+      <td style="text-align:center;">${p.year}</td>
+      <td style="text-align:right;font-weight:600;">${fmt(ic)}</td>
+      <td><span class="status-badge status-${p.status}" style="font-size:.68rem;">${statusLabel(p.status)}</span></td>
+    </tr>`;
+  }).join('');
+
+  const reservePct = Math.min(100, Math.max(0, Math.round(rows[0].endBalance / (s.minReserve * 3) * 100)));
+  const fillClass = health === 'green' ? '' : health === 'yellow' ? 'warn' : 'danger';
+
+  document.getElementById('ho-content').innerHTML = `
+
+    <div class="ho-section">
+      <h2>💰 Your Annual Dues — FY ${s.fiscalYear}</h2>
+      <div class="ho-dues-box">
+        <div class="ho-dues-amount">
+          <div class="big">$${s.assessmentPerLot.toLocaleString()}</div>
+          <div class="label">Per lot / year</div>
+        </div>
+        <div class="ho-dues-amount">
+          <div class="big">$${Math.round(s.assessmentPerLot/12).toLocaleString()}</div>
+          <div class="label">Per lot / month</div>
+        </div>
+        <div style="flex:1;font-size:.88rem;color:#475569;line-height:1.8;padding:16px;background:#f0fdf4;border-radius:12px;">
+          Your HOA has <strong>${s.lots} dues-paying lots</strong>. Annual dues of <strong>$${s.assessmentPerLot.toLocaleString()}/lot</strong>
+          generate <strong>${fmt(s.assessmentPerLot * s.lots)}</strong> per year in dues revenue — used to cover shared community operating expenses and build our reserve fund for future capital projects.
+        </div>
+      </div>
+    </div>
+
+    <div class="ho-section">
+      <h2>🧾 How Your Dues Are Used — FY ${s.fiscalYear} Operating Budget</h2>
+      <div class="ho-breakdown">
+        <div style="height:240px;width:240px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;">
+          <canvas id="ho-donut"></canvas>
+          <div style="position:absolute;text-align:center;pointer-events:none;">
+            <div style="font-size:1.2rem;font-weight:800;">${fmt(total)}</div>
+            <div style="font-size:.68rem;color:#64748b;">operating budget</div>
+          </div>
+        </div>
+        <table class="ho-breakdown-table">
+          <tr style="font-size:.72rem;color:#94a3b8;font-weight:700;text-transform:uppercase;">
+            <td>Category</td><td style="text-align:right;">Budget</td><td style="text-align:right;">$/Lot</td><td style="text-align:right;">%</td>
+          </tr>
+          ${catRows}
+          <tr><td><strong>TOTAL</strong></td><td style="text-align:right;"><strong>${fmt(total)}</strong></td>
+              <td style="text-align:right;"><strong>${fmt(Math.round(total/s.lots))}</strong></td><td style="text-align:right;">100%</td></tr>
+        </table>
+      </div>
+      <div style="font-size:.8rem;color:#64748b;margin-top:14px;line-height:1.6;padding:12px;background:#f8fafc;border-radius:8px;">
+        Operating expenses are projected to grow at approximately ${s.opexInflation}% per year. Your dues cover operating costs with the remainder going into the reserve fund for capital projects.
+      </div>
+    </div>
+
+    <div class="ho-section">
+      <h2>🔧 Planned Community Improvements</h2>
+      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">These are one-time projects funded from our reserve account. Base costs are adjusted for inflation to estimate the actual cost when each project is expected to occur.</p>
+      <table class="ho-project-list">
+        <thead><tr><th>Project</th><th>Category</th><th style="text-align:center">Year</th><th style="text-align:right">Est. Cost</th><th>Status</th></tr></thead>
+        <tbody>${projRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">No upcoming projects entered yet</td></tr>'}</tbody>
+      </table>
+      <div style="font-size:.78rem;color:#94a3b8;margin-top:10px;">All costs are inflation-adjusted estimates. Actual costs may vary. Projects are funded from the HOA reserve fund.</div>
+    </div>
+
+    <div class="ho-section">
+      <h2>🏦 Reserve Fund Health</h2>
+      <p style="font-size:.85rem;color:#475569;margin-bottom:14px;">
+        Our reserve fund is the HOA's "savings account" — used to fund capital projects and handle unexpected expenses. We maintain a minimum target of <strong>${fmt(s.minReserve)}</strong>.
+      </p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+        <div class="ho-stat"><div class="val">${fmt(s.startingReserve)}</div><div class="lbl">Starting Balance (Jan 1)</div></div>
+        <div class="ho-stat"><div class="val">${fmt(rows[0].endBalance)}</div><div class="lbl">Projected Year-End Balance</div></div>
+        <div class="ho-stat" style="background:${health==='green'?'#f0fdf4':health==='yellow'?'#fefce8':'#fef2f2'};">
+          <div class="val" style="color:${health==='green'?'#166534':health==='yellow'?'#854d0e':'#991b1b'}">${fmt(s.minReserve)}</div>
+          <div class="lbl">Minimum Target</div>
+        </div>
+      </div>
+      <div style="font-size:.8rem;color:#64748b;margin-bottom:6px;">Reserve balance relative to 3× minimum target:</div>
+      <div class="ho-reserve-bar"><div class="ho-reserve-fill ${fillClass}" style="width:${reservePct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#94a3b8;"><span>$0</span><span>${fmt(s.minReserve)} (min)</span><span>${fmt(s.minReserve*3)}</span></div>
+      <div style="margin-top:14px;padding:14px;border-radius:10px;font-size:.88rem;line-height:1.6;
+        background:${health==='green'?'#f0fdf4':health==='yellow'?'#fefce8':'#fef2f2'};
+        border-left:4px solid ${health==='green'?'#22c55e':health==='yellow'?'#f59e0b':'#ef4444'};
+        color:${health==='green'?'#166534':health==='yellow'?'#854d0e':'#991b1b'};">
+        ${health==='green'
+          ? `<strong>✓ Healthy.</strong> Based on the current dues level and capital plan, our reserve fund meets the $${s.minReserve.toLocaleString()} minimum target in all 10 projected years.`
+          : health==='yellow'
+          ? `<strong>⚠ Monitoring required.</strong> Our reserve fund is projected to dip below the $${s.minReserve.toLocaleString()} minimum in one or more years. The board is evaluating options.`
+          : `<strong>⚠ Attention required.</strong> Reserve projections show a potential shortfall. The board is actively reviewing dues levels and capital timing.`}
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:.78rem;color:#94a3b8;padding:16px;">
+      ${s.hoaName} · FY ${s.fiscalYear} Financial Summary · Generated ${new Date().toLocaleDateString()} · For community reference only
+    </div>
+  `;
+
+  // Render homeowner donut
+  setTimeout(() => {
+    makeChart('ho-donut', {
+      type:'doughnut',
+      data:{ labels:cats.map(c=>c.name), datasets:[{data:cats.map(c=>c.budget), backgroundColor:CAT_COLORS, borderWidth:3, borderColor:'white'}] },
+      options:{ responsive:false, plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.parsed)+' ('+Math.round(ctx.parsed/total*100)+'%)'}} },
+        cutout:'68%' }
+    });
+  }, 50);
+}
+
+// ═══════════════════════════════════════════════════
+// 13. UTILITIES
+// ═══════════════════════════════════════════════════
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════
+// 14. LOTS & REVENUE TAB
+// ═══════════════════════════════════════════════════
+function ensureLotRoster() {
+  if (!state.lotRoster) {
+    state.lotRoster = Array.from({length: state.settings.lots}, (_,i) => ({
+      id: i+1, owner: '', address: 'Lot ' + (i+1)
+    }));
+  }
+  // Grow if lots setting increased
+  while (state.lotRoster.length < state.settings.lots) {
+    const n = state.lotRoster.length + 1;
+    state.lotRoster.push({ id: n, owner: '', address: 'Lot ' + n });
+  }
+  if (!state.duesPayments)     state.duesPayments = [];
+  if (!state.impactFeeRecords) state.impactFeeRecords = [];
+}
+
+function getLotPayment(lotId, year, period) {
+  return (state.duesPayments || []).find(p => p.lotId === lotId && p.year === year && p.period === period);
+}
+
+function periodAmount() {
+  // Half of annual assessment
+  return Math.round(state.settings.assessmentPerLot / 2);
+}
+
+function pmtBadge(status) {
+  const labels = { paid:'Paid', partial:'Partial', waived:'Waived', unpaid:'Unpaid' };
+  return `<span class="pmt-badge pmt-${status||'unpaid'}">${labels[status||'unpaid']}</span>`;
+}
+
+function renderLotsKpis(year, period) {
+  ensureLotRoster();
+  const lots = state.settings.lots;
+  const amt = periodAmount();
+  let paid = 0, partial = 0, waived = 0, unpaid = 0, collected = 0;
+  for (let id = 1; id <= lots; id++) {
+    const p = getLotPayment(id, year, period);
+    const st = p ? p.status : 'unpaid';
+    if (st === 'paid')    { paid++;    collected += amt; }
+    else if (st === 'partial') { partial++; collected += (p.amount || 0); }
+    else if (st === 'waived')  { waived++; }
+    else unpaid++;
+  }
+  const pctCollected = lots > 0 ? Math.round(collected / (lots * amt) * 100) : 0;
+  document.getElementById('lots-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Paid in Full</div><div class="kpi-value" style="color:#22c55e">${paid}</div><div class="kpi-sub">of ${lots} lots</div></div>
+    <div class="kpi-card"><div class="kpi-label">Partial</div><div class="kpi-value" style="color:#f59e0b">${partial}</div><div class="kpi-sub">lots</div></div>
+    <div class="kpi-card"><div class="kpi-label">Unpaid</div><div class="kpi-value" style="color:#ef4444">${unpaid}</div><div class="kpi-sub">lots</div></div>
+    <div class="kpi-card"><div class="kpi-label">Collected (${period})</div><div class="kpi-value">${fmt(collected)}</div><div class="kpi-sub">${pctCollected}% of ${fmt(lots*amt)} expected</div></div>
+    <div class="kpi-card"><div class="kpi-label">Impact Fees (YTD)</div><div class="kpi-value">${fmt((state.impactFeeRecords||[]).filter(r=>r.date&&r.date.startsWith(year)).reduce((s,r)=>s+(r.amount||0),0))}</div><div class="kpi-sub">${year}</div></div>`;
+}
+
+function renderDuesTable(year, period) {
+  ensureLotRoster();
+  const amt = periodAmount();
+  const roster = state.lotRoster.slice(0, state.settings.lots);
+  let rows = '';
+  roster.forEach(lot => {
+    const h1 = getLotPayment(lot.id, year, 'H1');
+    const h2 = getLotPayment(lot.id, year, 'H2');
+    const h1st = h1 ? h1.status : 'unpaid';
+    const h2st = h2 ? h2.status : 'unpaid';
+    const due = (h1st === 'unpaid' ? amt : (h1st === 'partial' ? amt - (h1?.amount||0) : 0))
+              + (h2st === 'unpaid' ? amt : (h2st === 'partial' ? amt - (h2?.amount||0) : 0));
+    rows += `<tr>
+      <td><input type="checkbox" class="cleared-cb lot-cb" data-lot-id="${lot.id}"
+          onchange="updateBulkToolbar()"></td>
+      <td><strong>Lot ${lot.id}</strong></td>
+      <td><input type="text" value="${escHtml(lot.owner)}" placeholder="Owner name"
+          style="width:100%;border:none;background:transparent;font-size:.85rem;color:#1e293b;"
+          onchange="updateLotOwner(${lot.id}, this.value)"></td>
+      <td onclick="openPaymentModal(${lot.id},${year},'H1')" style="cursor:pointer">${pmtBadge(h1st)}</td>
+      <td onclick="openPaymentModal(${lot.id},${year},'H2')" style="cursor:pointer">${pmtBadge(h2st)}</td>
+      <td style="font-weight:600;color:${due>0?'#ef4444':'#22c55e'}">${due>0?fmt(due):'—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openPaymentModal(${lot.id},${year},'${period}')">Record</button></td>
+    </tr>`;
+  });
+  document.getElementById('dues-tbody').innerHTML = rows;
+}
+
+function renderLotsTab() {
+  ensureLotRoster();
+  const ySel = document.getElementById('lots-year-sel');
+  const pSel = document.getElementById('lots-period-sel');
+  const year = parseInt(ySel?.value || state.settings.fiscalYear);
+  const period = pSel?.value || 'H1';
+  renderLotsKpis(year, period);
+  renderDuesTable(year, period);
+  renderImpactTable();
+}
+
+function updateLotOwner(lotId, name) {
+  ensureLotRoster();
+  const lot = state.lotRoster.find(l => l.id === lotId);
+  if (lot) { lot.owner = name; saveState(); }
+}
+
+function markAllPaid() {
+  ensureLotRoster();
+  const year = parseInt(document.getElementById('lots-year-sel')?.value || state.settings.fiscalYear);
+  const period = document.getElementById('lots-period-sel')?.value || 'H1';
+  const amt = periodAmount();
+  const today = new Date().toISOString().slice(0,10);
+  for (let id = 1; id <= state.settings.lots; id++) {
+    const existing = state.duesPayments.findIndex(p => p.lotId===id && p.year===year && p.period===period);
+    const rec = { lotId:id, year, period, status:'paid', amount:amt, date:today, notes:'' };
+    if (existing >= 0) state.duesPayments[existing] = rec;
+    else state.duesPayments.push(rec);
+  }
+  saveState();
+  renderLotsTab();
+}
+
+// ── Multi-select / bulk actions ──
+function getSelectedLotIds() {
+  return Array.from(document.querySelectorAll('.lot-cb:checked'))
+    .map(cb => parseInt(cb.dataset.lotId));
+}
+
+function updateBulkToolbar() {
+  const selected = getSelectedLotIds();
+  const toolbar = document.getElementById('dues-bulk-toolbar');
+  const countEl = document.getElementById('dues-bulk-count');
+  const period = document.getElementById('lots-period-sel')?.value || 'H1';
+  if (selected.length > 0) {
+    toolbar.style.display = 'flex';
+    countEl.textContent = `${selected.length} lot${selected.length > 1 ? 's' : ''} selected`;
+  } else {
+    toolbar.style.display = 'none';
+  }
+  // Sync select-all checkbox state
+  const allCbs = document.querySelectorAll('.lot-cb');
+  const selectAll = document.getElementById('select-all-cb');
+  if (selectAll) {
+    selectAll.indeterminate = selected.length > 0 && selected.length < allCbs.length;
+    selectAll.checked = selected.length > 0 && selected.length === allCbs.length;
+  }
+}
+
+function toggleSelectAll(masterCb) {
+  document.querySelectorAll('.lot-cb').forEach(cb => { cb.checked = masterCb.checked; });
+  updateBulkToolbar();
+}
+
+function clearLotSelection() {
+  document.querySelectorAll('.lot-cb').forEach(cb => { cb.checked = false; });
+  const sa = document.getElementById('select-all-cb');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  document.getElementById('dues-bulk-toolbar').style.display = 'none';
+}
+
+function bulkMark(status) {
+  const ids = getSelectedLotIds();
+  if (!ids.length) return;
+  ensureLotRoster();
+  const year = parseInt(document.getElementById('lots-year-sel')?.value || state.settings.fiscalYear);
+  const period = document.getElementById('lots-period-sel')?.value || 'H1';
+  const amt = periodAmount();
+  const today = new Date().toISOString().slice(0,10);
+  ids.forEach(id => {
+    const existing = state.duesPayments.findIndex(p => p.lotId===id && p.year===year && p.period===period);
+    const rec = { lotId:id, year, period, status,
+      amount: status === 'paid' ? amt : 0,
+      date: status === 'paid' ? today : '',
+      notes: '' };
+    if (existing >= 0) state.duesPayments[existing] = rec;
+    else state.duesPayments.push(rec);
+  });
+  saveState();
+  clearLotSelection();
+  renderLotsTab();
+}
+
+function openPaymentModal(lotId, year, period) {
+  ensureLotRoster();
+  const lot = state.lotRoster.find(l => l.id === lotId) || { owner: '' };
+  const existing = getLotPayment(lotId, year, period);
+  const amt = periodAmount();
+  document.getElementById('pmt-lot-id').value = lotId;
+  document.getElementById('pmt-period-id').value = period;
+  document.getElementById('pmt-lot-display').value = 'Lot ' + lotId + (lot.owner ? ' — ' + lot.owner : '');
+  document.getElementById('pmt-period-display').value = year + ' ' + period + (period==='H1' ? ' (January)' : ' (July)');
+  document.getElementById('pmt-amount').value = existing ? existing.amount : amt;
+  document.getElementById('pmt-date').value = existing?.date || new Date().toISOString().slice(0,10);
+  document.getElementById('pmt-status').value = existing?.status || 'paid';
+  document.getElementById('pmt-notes').value = existing?.notes || '';
+  document.getElementById('pmt-modal-title').textContent = 'Record Payment — Lot ' + lotId + ' ' + year + ' ' + period;
+  document.getElementById('payment-modal').classList.add('open');
+}
+
+function savePayment() {
+  const lotId = parseInt(document.getElementById('pmt-lot-id').value);
+  const period = document.getElementById('pmt-period-id').value;
+  const year = parseInt(document.getElementById('lots-year-sel')?.value || state.settings.fiscalYear);
+  const rec = {
+    lotId, year, period,
+    status: document.getElementById('pmt-status').value,
+    amount: parseFloat(document.getElementById('pmt-amount').value) || 0,
+    date: document.getElementById('pmt-date').value,
+    notes: document.getElementById('pmt-notes').value
+  };
+  const idx = state.duesPayments.findIndex(p => p.lotId===lotId && p.year===year && p.period===period);
+  if (idx >= 0) state.duesPayments[idx] = rec;
+  else state.duesPayments.push(rec);
+  saveState();
+  closePaymentModal();
+  renderLotsTab();
+}
+
+function closePaymentModal() {
+  document.getElementById('payment-modal').classList.remove('open');
+}
+
+function renderImpactTable() {
+  const records = (state.impactFeeRecords || []).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const projects = (state.capitalProjects || []);
+  let rows = '';
+  if (!records.length) {
+    rows = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No impact fees recorded yet. Click "+ Add Impact Fee" to start.</td></tr>`;
+  } else {
+    records.forEach((r, i) => {
+      const proj = projects.find(p => p.id === r.projectId);
+      rows += `<tr>
+        <td>${r.date||'—'}</td>
+        <td>Lot ${escHtml(r.lot||'—')}</td>
+        <td>${escHtml(r.owner||'—')}</td>
+        <td>${escHtml(proj?.name||r.projectId||'—')}</td>
+        <td style="text-align:right">${r.sqft ? r.sqft.toLocaleString() : '—'}</td>
+        <td style="text-align:right;font-weight:600">${fmt(r.amount||0)}</td>
+        <td>${escHtml(r.notes||'')}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="deleteImpactFee(${i})" style="color:#ef4444">✕</button></td>
+      </tr>`;
+    });
+  }
+  document.getElementById('impact-tbody').innerHTML = rows;
+}
+
+function openImpactModal(idx) {
+  const projects = state.capitalProjects || [];
+  const projSel = document.getElementById('imp-project');
+  projSel.innerHTML = '<option value="">— No linked project —</option>' +
+    projects.map(p => `<option value="${p.id}">${escHtml(p.name)} (${p.year})</option>`).join('');
+
+  if (idx !== undefined) {
+    const r = state.impactFeeRecords[idx];
+    document.getElementById('imp-id').value = idx;
+    document.getElementById('imp-date').value = r.date || '';
+    document.getElementById('imp-lot').value = r.lot || '';
+    document.getElementById('imp-owner').value = r.owner || '';
+    document.getElementById('imp-sqft').value = r.sqft || '';
+    document.getElementById('imp-amount').value = r.amount || '';
+    document.getElementById('imp-project').value = r.projectId || '';
+    document.getElementById('imp-notes').value = r.notes || '';
+    document.getElementById('impact-modal-title').textContent = 'Edit Impact Fee';
+  } else {
+    document.getElementById('imp-id').value = '';
+    document.getElementById('imp-date').value = new Date().toISOString().slice(0,10);
+    ['imp-lot','imp-owner','imp-sqft','imp-amount','imp-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('imp-project').value = '';
+    document.getElementById('impact-modal-title').textContent = 'Add Impact Fee';
+  }
+  document.getElementById('impact-modal').classList.add('open');
+}
+
+function saveImpactFee() {
+  const idxVal = document.getElementById('imp-id').value;
+  const rec = {
+    date: document.getElementById('imp-date').value,
+    lot: document.getElementById('imp-lot').value.trim(),
+    owner: document.getElementById('imp-owner').value.trim(),
+    sqft: parseFloat(document.getElementById('imp-sqft').value) || 0,
+    amount: parseFloat(document.getElementById('imp-amount').value) || 0,
+    projectId: document.getElementById('imp-project').value,
+    notes: document.getElementById('imp-notes').value.trim()
+  };
+  if (!state.impactFeeRecords) state.impactFeeRecords = [];
+  if (idxVal !== '') state.impactFeeRecords[parseInt(idxVal)] = rec;
+  else state.impactFeeRecords.push(rec);
+  saveState();
+  closeImpactModal();
+  renderImpactTable();
+}
+
+function deleteImpactFee(idx) {
+  if (!confirm('Delete this impact fee record?')) return;
+  state.impactFeeRecords.splice(idx, 1);
+  saveState();
+  renderImpactTable();
+}
+
+function closeImpactModal() {
+  document.getElementById('impact-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════
+// 15. BANK VISIBILITY TAB
+// ═══════════════════════════════════════════════════
+function ensureBank() {
+  if (!state.bankEntries) state.bankEntries = [];
+}
+
+function getModelExpected(dateStr) {
+  // Returns the forecast year-end reserve balance for the year of dateStr
+  const year = parseInt((dateStr || '').slice(0, 4));
+  if (!year) return null;
+  const rows = calcForecast();
+  const row = rows.find(r => r.year === year);
+  return row ? row.endBalance : null;
+}
+
+function renderBankKpis() {
+  ensureBank();
+  const entries = state.bankEntries.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const latest = entries[0];
+  const modelExpected = latest ? getModelExpected(latest.date) : null;
+  const variance = (latest && modelExpected !== null) ? latest.amount - modelExpected : null;
+  const varColor = variance === null ? '#64748b'
+    : Math.abs(variance) > 5000 ? '#ef4444'
+    : Math.abs(variance) > 2000 ? '#f59e0b' : '#22c55e';
+  const varLabel = variance === null ? 'No entries yet'
+    : Math.abs(variance) < 500 ? 'In line with model'
+    : variance > 0 ? 'Ahead of model' : 'Behind model';
+  document.getElementById('bank-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Latest Actual Balance</div><div class="kpi-value">${latest ? fmt(latest.amount) : '—'}</div><div class="kpi-sub">${latest ? latest.date : 'No entries yet'}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Model Expected (YE ${latest ? latest.date.slice(0,4) : state.settings.fiscalYear})</div><div class="kpi-value">${modelExpected !== null ? fmt(modelExpected) : '—'}</div><div class="kpi-sub">Reserve forecast year-end</div></div>
+    <div class="kpi-card"><div class="kpi-label">Variance</div><div class="kpi-value" style="color:${varColor}">${variance !== null ? (variance >= 0 ? '+' : '') + fmt(variance) : '—'}</div><div class="kpi-sub">${varLabel}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Entries Logged</div><div class="kpi-value">${state.bankEntries.length}</div><div class="kpi-sub">Balance snapshots</div></div>`;
+}
+
+function renderBalanceTable() {
+  ensureBank();
+  const entries = state.bankEntries.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  let rows = '';
+  if (!entries.length) {
+    rows = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:30px 0;">No balance entries yet — click "+ Log Balance" to record the current bank balance.</td></tr>`;
+  } else {
+    entries.forEach((e, i) => {
+      const model = getModelExpected(e.date);
+      const diff = model !== null ? e.amount - model : null;
+      const diffColor = diff === null ? '#64748b' : Math.abs(diff) > 5000 ? '#ef4444' : Math.abs(diff) > 2000 ? '#f59e0b' : '#22c55e';
+      const diffStr = diff === null ? '—' : (diff >= 0 ? '+' : '') + fmt(diff);
+      rows += `<tr>
+        <td>${e.date||'—'}</td>
+        <td style="color:#64748b;font-size:.85rem">${escHtml(e.notes||'')}</td>
+        <td style="text-align:right;font-weight:700">${fmt(e.amount||0)}</td>
+        <td style="text-align:right;color:#94a3b8">${model !== null ? fmt(model) : '—'}</td>
+        <td style="text-align:right;font-weight:600;color:${diffColor}">${diffStr}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="deleteBalanceEntry(${i})" style="color:#ef4444">✕</button></td>
+      </tr>`;
+    });
+  }
+  document.getElementById('balance-tbody').innerHTML = rows;
+}
+
+function renderBalanceChart() {
+  ensureBank();
+  const entries = state.bankEntries.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const card = document.getElementById('balance-chart-card');
+  if (entries.length < 2) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  makeChart('balance-chart', {
+    type: 'line',
+    data: { labels: entries.map(e => e.date), datasets: [
+      { label:'Actual Balance', data: entries.map(e => e.amount),
+        borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)', tension:0.3, fill:true, pointRadius:5 },
+      { label:'Model Expected (YE)', data: entries.map(e => getModelExpected(e.date)),
+        borderColor:'#94a3b8', borderDash:[6,4], backgroundColor:'transparent', tension:0.3, pointRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{labels:{font:{size:11}}}, tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.parsed.y)}} },
+      scales:{ y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f1f5f9'}}, x:{grid:{display:false}} } }
+  });
+}
+
+function renderBankTab() {
+  ensureBank();
+  renderBankKpis();
+  renderBalanceTable();
+  renderBalanceChart();
+}
+
+function showBalanceForm() {
+  document.getElementById('bal-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('bal-amount').value = '';
+  document.getElementById('bal-notes').value = '';
+  document.getElementById('balance-form-wrap').style.display = '';
+  document.getElementById('bal-amount').focus();
+}
+
+function hideBalanceForm() {
+  document.getElementById('balance-form-wrap').style.display = 'none';
+}
+
+function saveBalanceEntry() {
+  ensureBank();
+  const date = document.getElementById('bal-date').value;
+  const amount = parseFloat(document.getElementById('bal-amount').value);
+  if (!date || isNaN(amount)) { alert('Please enter a date and balance amount.'); return; }
+  state.bankEntries.push({ date, amount, notes: document.getElementById('bal-notes').value.trim() });
+  saveState();
+  hideBalanceForm();
+  renderBankTab();
+}
+
+function deleteBalanceEntry(idx) {
+  if (!confirm('Delete this balance entry?')) return;
+  ensureBank();
+  // idx is based on descending sort — find the actual record
+  const sorted = state.bankEntries.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const target = sorted[idx];
+  const si = state.bankEntries.findIndex(e => e.date === target.date && e.amount === target.amount && e.notes === target.notes);
+  if (si >= 0) state.bankEntries.splice(si, 1);
+  saveState();
+  renderBankTab();
+}
+
+// Keep stubs so old saved state with txn modal references doesn't break
+function openTxnModal() {}
+function saveTransaction() {}
+function deleteTxn() {}
+function closeTxnModal() { document.getElementById('txn-modal')?.classList.remove('open'); }
+
+function renderAll() {
+  renderSettings();
+  const activeTab = document.querySelector('.tab-content.active')?.id?.replace('tab-','');
+  if (activeTab === 'budget')   renderBudget();
+  if (activeTab === 'capital')  renderCapital();
+  if (activeTab === 'forecast') renderForecast();
+  if (activeTab === 'scenarios') renderScenarios();
+  if (activeTab === 'lots')     renderLotsTab();
+  if (activeTab === 'bank')     renderBankTab();
+}
+
+// ── Modal inputs need listener after DOM ready ──
+function attachModalListeners() {
+  ['mp-cost','mp-year','mp-infl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateModalPreview);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  renderSettings();
+  attachModalListeners();
+  // Keyboard shortcut: Escape closes modals/homeowner view
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeModal();
+      closePaymentModal();
+      closeImpactModal();
+      closeTxnModal();
+      hideHomeowner();
+    }
+  });
+});
+</script>
+</body>
+</html>
