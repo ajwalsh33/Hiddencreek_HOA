@@ -972,7 +972,7 @@ const DEFAULT_STATE = {
         items:[
           { name:"Landscaping / mowing",                    values:[900,1226,1505,3395,4030,2865,4245,5565], avg8:2966 },
           { name:"Dust control (road)",                     values:[685,765,835,728,1002,0,1130,1156],       avg8:900  },
-          { name:"Road maint. (potholes)",                  values:[900,1852,1625,3467,7944,4760,1650,0],    avg8:3171 },
+          { name:"Road maintenance (potholes/spot repairs)", values:[900,1852,1625,3467,7944,4760,1650,0],    avg8:3171 },
           { name:"Snow plowing",                            values:[900,760,510,1070,1800,350,1000,1200],    avg8:949  },
           { name:"Tree removal",                            values:[1285,0,1600,1850,1900,200,0,0],          avg8:1367 }
         ]
@@ -987,12 +987,12 @@ const DEFAULT_STATE = {
       { id:"pool", name:"Pool & Amenities",
         totals:[9387,8331,8444,13795,11715,8147,13638,11050], avg8:10563,
         items:[
-          { name:"Pool svc / maint contract", values:[9015,7435,8107,8295,10515,7205,8600,8800], avg8:8496 },
-          { name:"Pool supplies & chem.",     values:[372,392,262,508,353,0,891,671],             avg8:493  },
-          { name:"Pool licenses & insp.",     values:[0,284,0,220,70,81,81,316],                  avg8:175  },
-          { name:"Pool mechanicals (op.)",    values:[0,0,0,0,0,0,4066,1033],                     avg8:2550 },
-          { name:"Pest service",              values:[0,220,75,150,75,150,0,230],                  avg8:150  },
-          { name:"Hardscape maint.",          values:[0,0,0,4622,702,711,0,0],                     avg8:2012 }
+          { name:"Pool service / maintenance contract", values:[9015,7435,8107,8295,10515,7205,8600,8800], avg8:8496 },
+          { name:"Pool supplies & chemicals",          values:[372,392,262,508,353,0,891,671],             avg8:493  },
+          { name:"Pool licenses & inspections",        values:[0,284,0,220,70,81,81,316],                  avg8:175  },
+          { name:"Pool mechanicals (operating)",       values:[0,0,0,0,0,0,4066,1033],                     avg8:2550 },
+          { name:"Pest service (pool area)",           values:[0,220,75,150,75,150,0,230],                  avg8:150  },
+          { name:"Hardscape maintenance",              values:[0,0,0,4622,702,711,0,0],                     avg8:2012 }
         ]
       },
       { id:"utilities", name:"Utilities",
@@ -1302,11 +1302,19 @@ function renderBudgetTable() {
     (hcat.items || []).forEach(hi => { histAvgMap[hi.name.toLowerCase()] = hi.avg8; });
   });
   function getHistAvg(itemName) {
-    // Try exact, then partial match
-    const key = itemName.toLowerCase();
+    const key = itemName.toLowerCase().trim();
+    // 1. Exact match
     if (histAvgMap[key] !== undefined) return histAvgMap[key];
+    // 2. One contains the other
     for (const k of Object.keys(histAvgMap)) {
-      if (key.includes(k.split('/')[0].trim()) || k.includes(key.split('/')[0].trim())) return histAvgMap[k];
+      if (key.includes(k) || k.includes(key)) return histAvgMap[k];
+    }
+    // 3. First significant word match (skip short words)
+    const firstWord = key.split(/[\s\/&(]/)[0];
+    if (firstWord.length > 4) {
+      for (const k of Object.keys(histAvgMap)) {
+        if (k.startsWith(firstWord)) return histAvgMap[k];
+      }
     }
     return null;
   }
