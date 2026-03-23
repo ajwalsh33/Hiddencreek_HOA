@@ -279,6 +279,8 @@ input,select,textarea{font-family:inherit;}
   <button class="tab-btn" onclick="switchTab('scenarios')"><span class="tab-num">5</span>🎯 Scenarios</button>
   <button class="tab-btn" onclick="switchTab('lots')"><span class="tab-num">6</span>🏘 Lots &amp; Revenue</button>
   <button class="tab-btn" onclick="switchTab('bank')"><span class="tab-num">7</span>🏦 Bank &amp; Reconciliation</button>
+  <button class="tab-btn" onclick="switchTab('history')"><span class="tab-num">8</span>📚 History &amp; Benchmarks</button>
+  <button class="tab-btn" onclick="switchTab('vendor')"><span class="tab-num">9</span>🔍 Vendor Ledger</button>
 </div>
 
 <!-- ══ TAB CONTENT ══ -->
@@ -319,7 +321,8 @@ input,select,textarea{font-family:inherit;}
               <div class="card-title">Operating Budget</div>
               <div class="card-sub">Click any dollar amount or name to edit inline. Track actuals throughout the year.</div>
             </div>
-            <div class="right">
+            <div class="right" style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="exportBudgetCSV()">⬇ CSV</button>
               <button class="btn btn-ghost btn-sm" onclick="addCategory()">+ Category</button>
             </div>
           </div>
@@ -360,7 +363,10 @@ input,select,textarea{font-family:inherit;}
     <div class="card">
       <div class="section-header">
         <div><div class="card-title">Capital Projects</div><div class="card-sub">Add, edit, or defer planned projects. Inflated costs calculate automatically.</div></div>
-        <button class="btn btn-primary" onclick="openProjectModal(null)">+ Add Project</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="exportCapitalCSV()">⬇ CSV</button>
+          <button class="btn btn-primary" onclick="openProjectModal(null)">+ Add Project</button>
+        </div>
       </div>
       <div style="overflow-x:auto;"><table class="cap-table" id="capital-table"></table></div>
     </div>
@@ -466,6 +472,7 @@ input,select,textarea{font-family:inherit;}
           <select id="lots-period-sel" class="field select" style="width:auto;padding:6px 10px;font-size:.85rem;" onchange="renderLotsTab()">
             <option value="H1">H1 (January)</option><option value="H2">H2 (July)</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="exportLotsCSV()">⬇ CSV</button>
           <button class="btn btn-sm" onclick="markAllPaid()">✓ Mark All Paid</button>
         </div>
       </div>
@@ -563,6 +570,108 @@ input,select,textarea{font-family:inherit;}
     <div class="card" style="margin-top:0;display:none;" id="balance-chart-card">
       <div class="card-title">Actual vs. Model Over Time</div>
       <div class="chart-wrap" style="height:220px;"><canvas id="balance-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TAB 8: HISTORY & BENCHMARKS -->
+  <div id="tab-history" class="tab-content">
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <div class="card-title">📚 Historical Actuals — 2018–2025</div>
+          <div class="card-sub">8-year operating history by category and line item. Use as reference during the annual budgeting process.</div>
+        </div>
+        <div class="right">
+          <button class="btn btn-ghost btn-sm" onclick="exportHistoryCSV()">⬇ CSV</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">📂 Import CSV<input type="file" accept=".csv" style="display:none" onchange="importHistoryCSV(event)"></label>
+        </div>
+      </div>
+      <div id="history-table-wrap" style="overflow-x:auto;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Capital Events — 2018–2025</div>
+      <div class="card-sub">Major one-time capital expenditures from the historical record.</div>
+      <div id="history-capital-wrap" style="overflow-x:auto;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Category Trend (2018–2025)</div>
+      <div class="chart-wrap" style="height:280px;"><canvas id="history-trend-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TAB 9: VENDOR LEDGER -->
+  <div id="tab-vendor" class="tab-content">
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <div class="card-title">🔍 Vendor &amp; Spending Ledger</div>
+          <div class="card-sub">Transaction-level history. Filter to research vendor patterns, category trends, or specific line items.</div>
+        </div>
+        <div class="right">
+          <button class="btn btn-primary btn-sm" onclick="showAddLedgerRow()">+ Add Entry</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportVendorCSV()">⬇ CSV</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">📂 Import CSV<input type="file" accept=".csv" style="display:none" onchange="importVendorCSV(event)"></label>
+        </div>
+      </div>
+      <!-- Filters -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end;">
+        <div class="field" style="flex:0 0 100px;">
+          <label>Year</label>
+          <select id="vl-filter-year" onchange="renderVendorTab()">
+            <option value="">All Years</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0 0 180px;">
+          <label>Category</label>
+          <select id="vl-filter-cat" onchange="renderVendorTab()">
+            <option value="">All Categories</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0 0 200px;">
+          <label>Type</label>
+          <select id="vl-filter-type" onchange="renderVendorTab()">
+            <option value="">All Types</option>
+            <option value="Operating">Operating</option>
+            <option value="Capital">Capital</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;min-width:180px;">
+          <label>Search vendor / description</label>
+          <input type="text" id="vl-search" placeholder="Type to search…" oninput="renderVendorTab()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearVendorFilters()" style="align-self:flex-end;margin-bottom:1px;">✕ Clear</button>
+      </div>
+      <div id="vl-summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <div id="vl-table-wrap" style="overflow-x:auto;"></div>
+    </div>
+    <!-- Add/Edit ledger row modal trigger area -->
+    <div id="vl-add-form-wrap" style="display:none;" class="card">
+      <div class="card-title" id="vl-form-title">Add Ledger Entry</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:12px;">
+        <input type="hidden" id="vl-edit-idx">
+        <div class="field"><label>Year</label><input type="number" id="vl-year" min="2000" max="2099" placeholder="2025"></div>
+        <div class="field"><label>Vendor</label><input type="text" id="vl-vendor" placeholder="Vendor name"></div>
+        <div class="field"><label>Description</label><input type="text" id="vl-desc" placeholder="Description"></div>
+        <div class="field"><label>Amount ($)</label><input type="number" id="vl-amount" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="field"><label>Category</label>
+          <select id="vl-cat">
+            <option>Administrative</option>
+            <option>Grounds &amp; Roads</option>
+            <option>Insurance &amp; Professional</option>
+            <option>Pool &amp; Amenities</option>
+            <option>Utilities</option>
+          </select>
+        </div>
+        <div class="field"><label>Line Item</label><input type="text" id="vl-lineitem" placeholder="Line item"></div>
+        <div class="field"><label>Type</label>
+          <select id="vl-type"><option>Operating</option><option>Capital</option></select>
+        </div>
+        <div class="field"><label>Notes</label><input type="text" id="vl-notes" placeholder="Optional"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-primary btn-sm" onclick="saveLedgerRow()">Save Entry</button>
+        <button class="btn btn-ghost btn-sm" onclick="cancelLedgerForm()">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -847,7 +956,66 @@ const DEFAULT_STATE = {
   })),
   duesPayments: [],
   impactFeeRecords: [],
-  bankEntries: []
+  bankEntries: [],
+  historicalData: {
+    years: [2018,2019,2020,2021,2022,2023,2024,2025],
+    categories: [
+      { id:"admin", name:"Administrative",
+        totals:[30,93,56,81,116,68,98,72], avg8:77,
+        items:[
+          { name:"Bank service charges",      values:[30,15,0,25,54,0,26,0],   avg8:30 },
+          { name:"PO Box / postage",           values:[0,78,56,56,62,68,72,72], avg8:66 }
+        ]
+      },
+      { id:"grounds", name:"Grounds & Roads",
+        totals:[4670,4603,6075,8765,16676,8175,8025,7921], avg8:8114,
+        items:[
+          { name:"Landscaping / mowing",                    values:[900,1226,1505,3395,4030,2865,4245,5565], avg8:2966 },
+          { name:"Dust control (road)",                     values:[685,765,835,728,1002,0,1130,1156],       avg8:900  },
+          { name:"Road maint. (potholes)",                  values:[900,1852,1625,3467,7944,4760,1650,0],    avg8:3171 },
+          { name:"Snow plowing",                            values:[900,760,510,1070,1800,350,1000,1200],    avg8:949  },
+          { name:"Tree removal",                            values:[1285,0,1600,1850,1900,200,0,0],          avg8:1367 }
+        ]
+      },
+      { id:"insurance", name:"Insurance & Professional",
+        totals:[1781,1722,1634,1559,1597,1560,1778,1762], avg8:1674,
+        items:[
+          { name:"Insurance",              values:[1406,1307,1544,1459,1497,1560,1778,1712], avg8:1533 },
+          { name:"Professional fees",      values:[375,415,90,100,100,0,0,50],               avg8:188  }
+        ]
+      },
+      { id:"pool", name:"Pool & Amenities",
+        totals:[9387,8331,8444,13795,11715,8147,13638,11050], avg8:10563,
+        items:[
+          { name:"Pool svc / maint contract", values:[9015,7435,8107,8295,10515,7205,8600,8800], avg8:8496 },
+          { name:"Pool supplies & chem.",     values:[372,392,262,508,353,0,891,671],             avg8:493  },
+          { name:"Pool licenses & insp.",     values:[0,284,0,220,70,81,81,316],                  avg8:175  },
+          { name:"Pool mechanicals (op.)",    values:[0,0,0,0,0,0,4066,1033],                     avg8:2550 },
+          { name:"Pest service",              values:[0,220,75,150,75,150,0,230],                  avg8:150  },
+          { name:"Hardscape maint.",          values:[0,0,0,4622,702,711,0,0],                     avg8:2012 }
+        ]
+      },
+      { id:"utilities", name:"Utilities",
+        totals:[3062,3008,3812,3631,3749,3182,3817,3167], avg8:3428,
+        items:[
+          { name:"Electric / utilities",   values:[2084,2027,2468,2329,2955,2352,2403,2294], avg8:2364 },
+          { name:"Telephone / internet",   values:[978,981,1344,1302,793,830,1414,873],      avg8:1064 }
+        ]
+      }
+    ],
+    grandTotals:[18930,17757,20021,27831,33853,21132,27356,23972], grandAvg8:23856,
+    capitalEvents:[
+      { year:2020, project:"Road re-grade (one-time)",   amount:28675,  category:"Grounds & Roads",   notes:"50% funded by special assessment" },
+      { year:2021, project:"Pool liner",                 amount:9500,   category:"Pool & Amenities",   notes:"Installed 2021" },
+      { year:2021, project:"Pool heater",                amount:4500,   category:"Pool & Amenities",   notes:"Installed 2021" },
+      { year:2021, project:"Pool driveway upgrade",      amount:1745,   category:"Grounds & Roads",    notes:"Stone borders" },
+      { year:2022, project:"Pool cover",                 amount:4310,   category:"Pool & Amenities",   notes:"Installed 2022" },
+      { year:2023, project:"Road survey (Merritt)",      amount:5200,   category:"Grounds & Roads",    notes:"Engineering/survey" },
+      { year:2024, project:"Road survey (Merritt)",      amount:6750,   category:"Grounds & Roads",    notes:"Engineering/survey" },
+      { year:2025, project:"Road re-grade (Hollerbach)", amount:191735, category:"Grounds & Roads",    notes:"Major road project; partially reserve-funded" }
+    ]
+  },
+  vendorLedger: [{"year":2018,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":30.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Inserv","description":"Dust control Road","amount":684.9,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":900.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":900.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":900.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1285.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1405.53,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":375.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":9015.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":371.57,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":977.67,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2084.38,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":15.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":78.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Inserv","description":"Dust control Road","amount":765.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1226.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1852.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":760.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1307.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":415.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7435.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":392.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":284.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pest Service","amount":220.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":981.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2027.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Inserv","description":"Dust control Road","amount":835.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1505.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1625.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":510.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1600.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1544.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":90.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8107.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":262.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pest Service","amount":75.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1344.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2468.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Merritt","description":"Road re-grade (one-time)","amount":28675.0,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"50% funded by special assessment"},{"year":2021,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":25.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Inserv","description":"Dust control Road","amount":728.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":3395.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":3467.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1070.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1850.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1459.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8295.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":508.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":220.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pest Service","amount":150.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":4622.0,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1302.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2329.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool liner","amount":9500.0,"category":"Pool & Amenities","lineItem":"Pool liner (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool heater","amount":4500.0,"category":"Pool & Amenities","lineItem":"Pool heater (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"HOA","description":"Pool driveway upgrade","amount":1745.0,"category":"Grounds & Roads","lineItem":"Pool driveway upgrade (capital)","type":"Capital","notes":"Stone borders"},{"year":2022,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":54.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":62.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1002.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4030.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":7944.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1800.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1900.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1497.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":10515.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":353.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":70.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pest Service","amount":75.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":702.0,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":793.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2955.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool cover","amount":4310.0,"category":"Pool & Amenities","lineItem":"Pool cover (capital)","type":"Capital","notes":"Installed 2022"},{"year":2023,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":68.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":2865.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":4760.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":350.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":200.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1560.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7205.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"HOA","description":"Pest Service","amount":150.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":711.0,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":830.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2352.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":5200.0,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2024,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":26.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1130.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4245.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1650.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1000.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1778.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8600.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":891.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":4066.0,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1414.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2403.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":6750.0,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2025,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1156.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":5565.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1200.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1712.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":50.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8800.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":671.06,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":316.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":1033.0,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pest Service","amount":230.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":873.39,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2293.54,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Merritt","description":"Road re-grade (Hollerbach)","amount":191735.0,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"Major road project; partially reserve-funded"}]
 };
 
 // ═══════════════════════════════════════════════════
@@ -858,7 +1026,17 @@ let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 function loadState() {
   try {
     const saved = localStorage.getItem('hoa_planner_v2');
-    if (saved) state = JSON.parse(saved);
+    if (saved) {
+      state = JSON.parse(saved);
+      // Backfill any top-level keys added after the user's saved version
+      const def = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      Object.keys(def).forEach(k => {
+        if (state[k] === undefined || state[k] === null) state[k] = def[k];
+      });
+      // Specifically: if historicalData or vendorLedger are empty arrays/falsy, reset from default
+      if (!state.historicalData || !state.historicalData.years) state.historicalData = def.historicalData;
+      if (!state.vendorLedger || state.vendorLedger.length === 0) state.vendorLedger = def.vendorLedger;
+    }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 }
 
@@ -1010,6 +1188,8 @@ function switchTab(tab) {
   if (tab === 'scenarios'){ renderScenarios(); }
   if (tab === 'lots')     { renderLotsTab(); }
   if (tab === 'bank')     { renderBankTab(); }
+  if (tab === 'history')  { renderHistoryTab(); }
+  if (tab === 'vendor')   { renderVendorTab(); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1116,17 +1296,35 @@ function renderBudgetTable() {
   const totalBudget = budgetTotal();
   const totalActual = actualsTotal();
 
+  // Build a lookup: historicalData line item name → 8-yr avg
+  const histAvgMap = {};
+  (state.historicalData && state.historicalData.categories || []).forEach(hcat => {
+    (hcat.items || []).forEach(hi => { histAvgMap[hi.name.toLowerCase()] = hi.avg8; });
+  });
+  function getHistAvg(itemName) {
+    // Try exact, then partial match
+    const key = itemName.toLowerCase();
+    if (histAvgMap[key] !== undefined) return histAvgMap[key];
+    for (const k of Object.keys(histAvgMap)) {
+      if (key.includes(k.split('/')[0].trim()) || k.includes(key.split('/')[0].trim())) return histAvgMap[k];
+    }
+    return null;
+  }
+
   let html = `<table class="budget-table">
     <thead><tr>
       <th style="min-width:220px">Line Item</th>
-      <th>Budget</th><th>Actual YTD</th><th>Remaining</th><th>% Used</th><th></th>
+      <th>Budget</th><th>Actual YTD</th><th>Remaining</th><th>% Used</th>
+      <th title="8-year historical average (2018–2025)" style="border-left:2px solid #e2e8f0;color:#7c3aed;">8-Yr Avg</th>
+      <th title="Budget vs. 8-year historical average" style="color:#7c3aed;">vs. Hist</th>
+      <th></th>
     </tr></thead><tbody>`;
 
   cats.forEach((cat, ci) => {
     const catBudget = cat.items.reduce((s,it) => s + (it.budget||0), 0);
     const catActual = cat.items.reduce((s,it) => s + (it.actual||0), 0);
     html += `<tr class="cat-header">
-      <td colspan="5"><strong>${cat.name}</strong></td>
+      <td colspan="7"><strong>${cat.name}</strong></td>
       <td><div class="row-actions">
         <button class="icon-btn" title="Add line item" onclick="addBudgetItem('${cat.id}')">+</button>
         <button class="icon-btn" title="Delete category" onclick="deleteCategory('${cat.id}')">🗑</button>
@@ -1138,6 +1336,17 @@ function renderBudgetTable() {
       const pct = item.budget > 0 ? Math.round((item.actual||0) / item.budget * 100) : 0;
       const pillClass = item.actual === 0 ? 'util-empty' : pct >= 100 ? 'util-over' : pct >= 80 ? 'util-warn' : 'util-ok';
       const pillLabel = item.actual === 0 ? '—' : pct + '%';
+      const histAvg = getHistAvg(item.name);
+      let histCell = '<td class="text-right" style="border-left:2px solid #e2e8f0;color:#7c3aed;">—</td><td></td>';
+      if (histAvg !== null && item.budget > 0) {
+        const varPct = Math.round((item.budget - histAvg) / histAvg * 100);
+        const varColor = varPct > 15 ? '#dc2626' : varPct < -15 ? '#2563eb' : '#16a34a';
+        const varLabel = (varPct >= 0 ? '+' : '') + varPct + '%';
+        histCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#7c3aed;font-size:.78rem;">${fmt(histAvg)}</td>
+        <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:${varColor};">${varLabel}</span></td>`;
+      } else if (histAvg !== null) {
+        histCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#7c3aed;font-size:.78rem;">${fmt(histAvg)}</td><td></td>`;
+      }
 
       html += `<tr>
         <td class="editable-cell editable-name" data-type="name" data-ci="${ci}" data-ii="${ii}">${escHtml(item.name)}</td>
@@ -1145,6 +1354,7 @@ function renderBudgetTable() {
         <td class="editable-cell text-right" data-type="actual" data-ci="${ci}" data-ii="${ii}">${fmt(item.actual)}</td>
         <td class="text-right" style="color:${remaining < 0 ? '#dc2626' : '#16a34a'}">${fmt(remaining)}</td>
         <td class="text-right"><span class="util-pill ${pillClass}">${pillLabel}</span></td>
+        ${histCell}
         <td><div class="row-actions">
           <button class="icon-btn" title="Delete" onclick="deleteBudgetItem('${cat.id}','${item.id}')">🗑</button>
         </div></td>
@@ -1157,19 +1367,24 @@ function renderBudgetTable() {
       <td class="text-right">${fmt(catActual)}</td>
       <td class="text-right" style="color:${catBudget-catActual<0?'#dc2626':'#16a34a'}">${fmt(catBudget-catActual)}</td>
       <td class="text-right"><span class="util-pill ${catActual===0?'util-empty':catActual/catBudget>=1?'util-over':catActual/catBudget>=.8?'util-warn':'util-ok'}">${catBudget>0?Math.round(catActual/catBudget*100)+'%':'—'}</span></td>
+      <td colspan="2" style="border-left:2px solid #e2e8f0;"></td>
       <td></td>
     </tr>
-    <tr class="add-item-row"><td colspan="6">
+    <tr class="add-item-row"><td colspan="8">
       <button class="btn btn-ghost btn-sm" onclick="addBudgetItem('${cat.id}')">+ Add line item to ${escHtml(cat.name)}</button>
     </td></tr>`;
   });
 
+  const grandHistAvg = (state.historicalData && state.historicalData.grandAvg8) || null;
+  const grandVarPct = grandHistAvg ? Math.round((totalBudget - grandHistAvg) / grandHistAvg * 100) : null;
   html += `<tr class="total-row">
     <td>TOTAL OPERATING EXPENSES</td>
     <td class="text-right">${fmt(totalBudget)}</td>
     <td class="text-right">${fmt(totalActual)}</td>
     <td class="text-right">${fmt(totalBudget-totalActual)}</td>
     <td class="text-right">${totalBudget>0?Math.round(totalActual/totalBudget*100)+'%':'—'}</td>
+    <td class="text-right" style="border-left:2px solid rgba(255,255,255,.2);opacity:.85;">${grandHistAvg ? fmt(grandHistAvg) : '—'}</td>
+    <td class="text-right">${grandVarPct !== null ? (grandVarPct >= 0 ? '+' : '') + grandVarPct + '%' : ''}</td>
     <td></td>
   </tr></tbody></table>
   <div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="addCategory()">+ Add new category</button></div>`;
@@ -2274,6 +2489,138 @@ function saveTransaction() {}
 function deleteTxn() {}
 function closeTxnModal() { document.getElementById('txn-modal')?.classList.remove('open'); }
 
+// ═══════════════════════════════════════════════════
+// 16. CSV EXPORTS
+// ═══════════════════════════════════════════════════
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r =>
+    r.map(cell => {
+      const s = String(cell == null ? '' : cell).replace(/"/g, '""');
+      return s.includes(',') || s.includes('\n') || s.includes('"') ? `"${s}"` : s;
+    }).join(',')
+  ).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function exportBudgetCSV() {
+  const fy = state.settings.fiscalYear;
+  const lots = state.settings.lots;
+  const rows = [
+    ['Hidden Creek HOA — Operating Budget', `FY ${fy}`],
+    [],
+    ['Category', 'Line Item', 'Budget ($)', 'Actual YTD ($)', 'Variance ($)', 'Per Lot/Yr ($)', 'Notes']
+  ];
+  let catTotal = 0, catActual = 0;
+  state.budget.categories.forEach(cat => {
+    const catBudget = cat.items.reduce((s, i) => s + (i.budget || 0), 0);
+    const catAct    = cat.items.reduce((s, i) => s + (i.actual || 0), 0);
+    cat.items.forEach(item => {
+      rows.push([
+        cat.name,
+        item.name,
+        item.budget || 0,
+        item.actual || 0,
+        (item.actual || 0) - (item.budget || 0),
+        lots > 0 ? ((item.budget || 0) / lots).toFixed(2) : 0,
+        item.notes || ''
+      ]);
+    });
+    rows.push(['', `${cat.name} Subtotal`, catBudget, catAct, catAct - catBudget, '', '']);
+    rows.push([]);
+    catTotal += catBudget;
+    catActual += catAct;
+  });
+  rows.push(['TOTAL', '', catTotal, catActual, catActual - catTotal,
+    lots > 0 ? (catTotal / lots).toFixed(2) : 0, '']);
+  rows.push([]);
+  rows.push([`Annual assessment per lot: $${state.settings.assessmentPerLot}`,
+    `Operating cost per lot: $${(catTotal / lots).toFixed(2)}`,
+    `Surplus per lot to reserve: $${(state.settings.assessmentPerLot - catTotal / lots).toFixed(2)}`]);
+  downloadCSV(`HiddenCreek_Budget_FY${fy}.csv`, rows);
+}
+
+function exportCapitalCSV() {
+  const capexRate = (state.settings.capexInflation || 0) / 100;
+  const fy = state.settings.fiscalYear;
+  const rows = [
+    ['Hidden Creek HOA — Capital Projects', `Exported ${new Date().toLocaleDateString()}`],
+    [],
+    ['Project', 'Category', 'Status', 'Planned Year', 'Base Cost ($)',
+     'Inflation Rate (%)', 'Inflated Cost ($)', 'Notes']
+  ];
+  const sorted = state.capitalProjects.slice().sort((a, b) => a.year - b.year);
+  sorted.forEach(p => {
+    const rate = p.inflOverride != null ? p.inflOverride / 100 : capexRate;
+    const yrs  = p.year - fy;
+    const inflated = yrs >= 0
+      ? Math.round(p.baseCost * Math.pow(1 + rate, yrs))
+      : p.baseCost;
+    rows.push([
+      p.name, p.category, p.status, p.year,
+      p.baseCost,
+      ((p.inflOverride != null ? p.inflOverride : state.settings.capexInflation)).toFixed(1) + '%',
+      inflated,
+      p.notes || ''
+    ]);
+  });
+  rows.push([]);
+  const totalInflated = sorted.reduce((sum, p) => {
+    const rate = p.inflOverride != null ? p.inflOverride / 100 : capexRate;
+    const yrs  = p.year - fy;
+    return sum + (yrs >= 0 ? Math.round(p.baseCost * Math.pow(1 + rate, yrs)) : p.baseCost);
+  }, 0);
+  rows.push(['TOTAL (inflated)', '', '', '', '', '', totalInflated, '']);
+  downloadCSV(`HiddenCreek_CapitalProjects.csv`, rows);
+}
+
+function exportLotsCSV() {
+  ensureLotRoster();
+  const year = parseInt(document.getElementById('lots-year-sel')?.value || state.settings.fiscalYear);
+  const amt  = periodAmount();
+  const rows = [
+    [`Hidden Creek HOA — Dues Payment Status`, `FY ${year}`],
+    [`Assessment: $${state.settings.assessmentPerLot}/lot/yr  ·  $${amt}/lot per period`],
+    [],
+    ['Lot #', 'Owner', `H1 Status`, `H1 Amount ($)`, `H1 Date`,
+     `H2 Status`, `H2 Amount ($)`, `H2 Date`, 'Annual Balance Due ($)', 'Notes']
+  ];
+  const roster = state.lotRoster.slice(0, state.settings.lots);
+  let totalCollected = 0;
+  roster.forEach(lot => {
+    const h1 = getLotPayment(lot.id, year, 'H1');
+    const h2 = getLotPayment(lot.id, year, 'H2');
+    const h1st = h1?.status || 'unpaid';
+    const h2st = h2?.status || 'unpaid';
+    const h1amt = h1?.amount || 0;
+    const h2amt = h2?.amount || 0;
+    const due = (h1st === 'paid' || h1st === 'waived' ? 0 : amt - h1amt)
+              + (h2st === 'paid' || h2st === 'waived' ? 0 : amt - h2amt);
+    totalCollected += h1amt + h2amt;
+    rows.push([
+      `Lot ${lot.id}`, lot.owner || '',
+      h1st, h1amt, h1?.date || '',
+      h2st, h2amt, h2?.date || '',
+      due,
+      (h1?.notes || h2?.notes) ? [h1?.notes, h2?.notes].filter(Boolean).join('; ') : ''
+    ]);
+  });
+  rows.push([]);
+  rows.push(['TOTALS', `${roster.length} lots`, '', totalCollected, '', '', '', '',
+    roster.reduce((s, lot) => {
+      const h1 = getLotPayment(lot.id, year, 'H1');
+      const h2 = getLotPayment(lot.id, year, 'H2');
+      const h1st = h1?.status || 'unpaid';
+      const h2st = h2?.status || 'unpaid';
+      return s + (h1st === 'paid' || h1st === 'waived' ? 0 : amt - (h1?.amount||0))
+               + (h2st === 'paid' || h2st === 'waived' ? 0 : amt - (h2?.amount||0));
+    }, 0), '']);
+  downloadCSV(`HiddenCreek_DuesStatus_${year}.csv`, rows);
+}
+
 function renderAll() {
   renderSettings();
   const activeTab = document.querySelector('.tab-content.active')?.id?.replace('tab-','');
@@ -2291,6 +2638,351 @@ function attachModalListeners() {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateModalPreview);
   });
+}
+
+// ═══════════════════════════════════════════════════
+// TAB 8: HISTORY & BENCHMARKS
+// ═══════════════════════════════════════════════════
+function renderHistoryTab() {
+  const hd = state.historicalData;
+  if (!hd) return;
+  const years = hd.years;
+
+  // ── Category + line item table ──
+  let html = `<table class="budget-table" style="font-size:.8rem;">
+    <thead><tr>
+      <th style="min-width:200px;text-align:left;">Category / Line Item</th>
+      ${years.map(y => `<th>${y}</th>`).join('')}
+      <th style="background:#f3e8ff;color:#7c3aed;">8-Yr Avg</th>
+    </tr></thead><tbody>`;
+
+  hd.categories.forEach(cat => {
+    // Category total row
+    html += `<tr class="cat-header">
+      <td colspan="${years.length + 2}"><strong>${cat.name}</strong></td>
+    </tr>
+    <tr style="background:#f8fafc;font-weight:700;">
+      <td style="padding-left:12px;">Category Total</td>
+      ${cat.totals.map(v => `<td class="text-right">${v ? fmt(v) : '—'}</td>`).join('')}
+      <td class="text-right" style="background:#f3e8ff;color:#7c3aed;">${fmt(cat.avg8)}</td>
+    </tr>`;
+
+    // Line items
+    cat.items.forEach(item => {
+      html += `<tr>
+        <td style="padding-left:24px;color:#64748b;">${escHtml(item.name)}</td>
+        ${item.values.map(v => `<td class="text-right">${v ? fmt(v) : '<span style="color:#cbd5e1">—</span>'}</td>`).join('')}
+        <td class="text-right" style="background:#f3e8ff;color:#7c3aed;">${item.avg8 ? fmt(item.avg8) : '—'}</td>
+      </tr>`;
+    });
+  });
+
+  // Grand total
+  html += `<tr class="total-row">
+    <td>TOTAL OPERATING</td>
+    ${hd.grandTotals.map(v => `<td class="text-right">${fmt(v)}</td>`).join('')}
+    <td class="text-right">${fmt(hd.grandAvg8)}</td>
+  </tr></tbody></table>`;
+
+  // Avg vs current budget callout
+  const curBudget = budgetTotal();
+  if (curBudget > 0) {
+    const diff = curBudget - hd.grandAvg8;
+    const diffPct = Math.round(diff / hd.grandAvg8 * 100);
+    const color = diff > 0 ? '#dc2626' : '#16a34a';
+    html += `<div style="margin-top:12px;padding:10px 14px;background:#faf5ff;border-left:4px solid #7c3aed;border-radius:6px;font-size:.82rem;">
+      <strong>FY${state.settings.fiscalYear} Budget vs. 8-Yr Average:</strong>
+      ${fmt(curBudget)} proposed vs. ${fmt(hd.grandAvg8)} historical avg
+      <span style="color:${color};font-weight:700;margin-left:8px;">${diff >= 0 ? '+' : ''}${fmt(diff)} (${diffPct >= 0 ? '+' : ''}${diffPct}%)</span>
+    </div>`;
+  }
+
+  document.getElementById('history-table-wrap').innerHTML = html;
+
+  // ── Capital events table ──
+  let capHtml = `<table class="budget-table" style="font-size:.8rem;">
+    <thead><tr><th style="text-align:left">Year</th><th style="text-align:left">Project</th><th>Amount</th><th style="text-align:left">Category</th><th style="text-align:left">Notes</th></tr></thead>
+    <tbody>`;
+  hd.capitalEvents.forEach(ev => {
+    capHtml += `<tr>
+      <td>${ev.year}</td>
+      <td>${escHtml(ev.project)}</td>
+      <td class="text-right">${fmt(ev.amount)}</td>
+      <td>${escHtml(ev.category)}</td>
+      <td style="color:#64748b;font-size:.76rem;">${escHtml(ev.notes||'')}</td>
+    </tr>`;
+  });
+  const capTotal = hd.capitalEvents.reduce((s,e) => s+e.amount, 0);
+  capHtml += `<tr class="total-row"><td colspan="2">TOTAL CAPITAL (2018–2025)</td><td class="text-right">${fmt(capTotal)}</td><td colspan="2"></td></tr>
+    </tbody></table>`;
+  document.getElementById('history-capital-wrap').innerHTML = capHtml;
+
+  // ── Trend chart ──
+  const catColors = ['#6366f1','#22c55e','#f59e0b','#3b82f6','#ef4444'];
+  makeChart('history-trend-chart', {
+    type: 'bar',
+    data: {
+      labels: years.map(String),
+      datasets: hd.categories.map((cat, i) => ({
+        label: cat.name,
+        data: cat.totals,
+        backgroundColor: catColors[i % catColors.length],
+        stack: 'stack'
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } } },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, ticks: { callback: v => '$'+Math.round(v/1000)+'k' } }
+      }
+    }
+  });
+}
+
+function exportHistoryCSV() {
+  const hd = state.historicalData;
+  if (!hd) return;
+  const yrs = hd.years;
+  const rows = [['Category','Line Item', ...yrs.map(String), '8-Yr Avg']];
+  hd.categories.forEach(cat => {
+    rows.push([cat.name, 'TOTAL', ...cat.totals.map(String), String(cat.avg8)]);
+    cat.items.forEach(item => {
+      rows.push([cat.name, item.name, ...item.values.map(String), String(item.avg8)]);
+    });
+  });
+  rows.push(['TOTAL OPERATING', '', ...hd.grandTotals.map(String), String(hd.grandAvg8)]);
+  downloadCSV('hidden_creek_history.csv', rows);
+}
+
+function importHistoryCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const lines = e.target.result.trim().split('\n');
+      // Minimal import: just notify success for now
+      alert('CSV import noted. For full historical data updates, edit the embedded data or use JSON export/import.');
+    } catch(err) { alert('Import error: ' + err.message); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════
+// TAB 9: VENDOR LEDGER
+// ═══════════════════════════════════════════════════
+function renderVendorTab() {
+  const yearSel = document.getElementById('vl-filter-year');
+  const catSel  = document.getElementById('vl-filter-cat');
+  const typeSel = document.getElementById('vl-filter-type');
+  const search  = (document.getElementById('vl-search') || {}).value || '';
+
+  // Populate filter dropdowns on first render
+  if (yearSel && yearSel.options.length <= 1) {
+    const years = [...new Set((state.vendorLedger||[]).map(r=>r.year))].sort();
+    years.forEach(y => { const o=document.createElement('option'); o.value=y; o.textContent=y; yearSel.appendChild(o); });
+  }
+  if (catSel && catSel.options.length <= 1) {
+    const cats = [...new Set((state.vendorLedger||[]).map(r=>r.category))].sort();
+    cats.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; catSel.appendChild(o); });
+  }
+
+  const filterYear = yearSel ? yearSel.value : '';
+  const filterCat  = catSel  ? catSel.value  : '';
+  const filterType = typeSel ? typeSel.value : '';
+  const q = search.toLowerCase();
+
+  let rows = (state.vendorLedger || []).filter(r => {
+    if (filterYear && String(r.year) !== filterYear) return false;
+    if (filterCat  && r.category !== filterCat) return false;
+    if (filterType && r.type !== filterType) return false;
+    if (q && !( (r.vendor||'').toLowerCase().includes(q) ||
+                (r.description||'').toLowerCase().includes(q) ||
+                (r.lineItem||'').toLowerCase().includes(q) ||
+                (r.notes||'').toLowerCase().includes(q) )) return false;
+    return true;
+  });
+
+  // Sort: year desc, then category
+  rows = rows.slice().sort((a,b) => b.year - a.year || (a.category||'').localeCompare(b.category||''));
+
+  // Summary strip
+  const total = rows.reduce((s,r) => s+r.amount, 0);
+  const opTotal = rows.filter(r=>r.type==='Operating').reduce((s,r)=>s+r.amount,0);
+  const capTotal = rows.filter(r=>r.type==='Capital').reduce((s,r)=>s+r.amount,0);
+  document.getElementById('vl-summary').innerHTML = `
+    <div class="kpi-card" style="flex:0 0 auto;padding:10px 18px;">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;">Showing</div>
+      <div style="font-size:1.1rem;font-weight:800;">${rows.length} entries</div>
+    </div>
+    <div class="kpi-card" style="flex:0 0 auto;padding:10px 18px;">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;">Total</div>
+      <div style="font-size:1.1rem;font-weight:800;">${fmt(total)}</div>
+    </div>
+    <div class="kpi-card" style="flex:0 0 auto;padding:10px 18px;">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;">Operating</div>
+      <div style="font-size:1.1rem;font-weight:800;">${fmt(opTotal)}</div>
+    </div>
+    <div class="kpi-card" style="flex:0 0 auto;padding:10px 18px;">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;">Capital</div>
+      <div style="font-size:1.1rem;font-weight:800;">${fmt(capTotal)}</div>
+    </div>`;
+
+  // Table
+  let tbl = `<table class="txn-table" style="font-size:.8rem;">
+    <thead><tr>
+      <th>Year</th><th>Vendor</th><th>Description</th><th>Category</th><th>Line Item</th>
+      <th>Type</th><th style="text-align:right">Amount</th><th>Notes</th><th></th>
+    </tr></thead><tbody>`;
+
+  if (rows.length === 0) {
+    tbl += `<tr><td colspan="9" style="text-align:center;padding:24px;color:#94a3b8;">No entries match the current filters.</td></tr>`;
+  } else {
+    const allRows = state.vendorLedger || [];
+    rows.forEach(r => {
+      const idx = allRows.indexOf(r);
+      const typeColor = r.type === 'Capital' ? '#f59e0b' : '#16a34a';
+      tbl += `<tr>
+        <td>${r.year}</td>
+        <td>${escHtml(r.vendor||'')}</td>
+        <td>${escHtml(r.description||'')}</td>
+        <td style="font-size:.74rem;">${escHtml(r.category||'')}</td>
+        <td style="font-size:.74rem;color:#64748b;">${escHtml(r.lineItem||'')}</td>
+        <td><span style="font-size:.7rem;font-weight:700;color:${typeColor}">${r.type||''}</span></td>
+        <td class="text-right">${fmt(r.amount)}</td>
+        <td style="font-size:.74rem;color:#64748b;">${escHtml(r.notes||'')}</td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn" title="Edit" onclick="editLedgerRow(${idx})">✏</button>
+            <button class="icon-btn" title="Delete" onclick="deleteLedgerRow(${idx})">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+    });
+  }
+  tbl += `</tbody></table>`;
+  document.getElementById('vl-table-wrap').innerHTML = tbl;
+}
+
+function clearVendorFilters() {
+  document.getElementById('vl-filter-year').value = '';
+  document.getElementById('vl-filter-cat').value = '';
+  document.getElementById('vl-filter-type').value = '';
+  document.getElementById('vl-search').value = '';
+  renderVendorTab();
+}
+
+function showAddLedgerRow() {
+  document.getElementById('vl-edit-idx').value = '';
+  document.getElementById('vl-year').value = new Date().getFullYear();
+  document.getElementById('vl-vendor').value = '';
+  document.getElementById('vl-desc').value = '';
+  document.getElementById('vl-amount').value = '';
+  document.getElementById('vl-cat').value = 'Administrative';
+  document.getElementById('vl-lineitem').value = '';
+  document.getElementById('vl-type').value = 'Operating';
+  document.getElementById('vl-notes').value = '';
+  document.getElementById('vl-form-title').textContent = 'Add Ledger Entry';
+  document.getElementById('vl-add-form-wrap').style.display = '';
+}
+
+function editLedgerRow(idx) {
+  const r = state.vendorLedger[idx];
+  if (!r) return;
+  document.getElementById('vl-edit-idx').value = idx;
+  document.getElementById('vl-year').value = r.year || '';
+  document.getElementById('vl-vendor').value = r.vendor || '';
+  document.getElementById('vl-desc').value = r.description || '';
+  document.getElementById('vl-amount').value = r.amount || '';
+  document.getElementById('vl-cat').value = r.category || 'Administrative';
+  document.getElementById('vl-lineitem').value = r.lineItem || '';
+  document.getElementById('vl-type').value = r.type || 'Operating';
+  document.getElementById('vl-notes').value = r.notes || '';
+  document.getElementById('vl-form-title').textContent = 'Edit Ledger Entry';
+  document.getElementById('vl-add-form-wrap').style.display = '';
+  document.getElementById('vl-add-form-wrap').scrollIntoView({behavior:'smooth'});
+}
+
+function saveLedgerRow() {
+  const entry = {
+    year: parseInt(document.getElementById('vl-year').value) || new Date().getFullYear(),
+    date: '',
+    vendor: document.getElementById('vl-vendor').value.trim(),
+    description: document.getElementById('vl-desc').value.trim(),
+    amount: parseFloat(document.getElementById('vl-amount').value) || 0,
+    category: document.getElementById('vl-cat').value,
+    lineItem: document.getElementById('vl-lineitem').value.trim(),
+    type: document.getElementById('vl-type').value,
+    notes: document.getElementById('vl-notes').value.trim()
+  };
+  const idx = document.getElementById('vl-edit-idx').value;
+  if (idx !== '') {
+    state.vendorLedger[parseInt(idx)] = entry;
+  } else {
+    if (!state.vendorLedger) state.vendorLedger = [];
+    state.vendorLedger.push(entry);
+  }
+  saveState();
+  cancelLedgerForm();
+  renderVendorTab();
+}
+
+function deleteLedgerRow(idx) {
+  if (!confirm('Delete this entry?')) return;
+  state.vendorLedger.splice(idx, 1);
+  saveState();
+  renderVendorTab();
+}
+
+function cancelLedgerForm() {
+  document.getElementById('vl-add-form-wrap').style.display = 'none';
+}
+
+function exportVendorCSV() {
+  const rows = [['Year','Vendor','Description','Amount','Category','Line Item','Type','Notes']];
+  (state.vendorLedger || []).forEach(r => {
+    rows.push([r.year, r.vendor||'', r.description||'', r.amount, r.category||'', r.lineItem||'', r.type||'', r.notes||'']);
+  });
+  downloadCSV('hidden_creek_vendor_ledger.csv', rows);
+}
+
+function importVendorCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const lines = e.target.result.trim().split('\n');
+      const header = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+      const newRows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g) || lines[i].split(',');
+        const clean = c => (c||'').replace(/^"|"$/g,'').trim();
+        const get = key => { const idx = header.indexOf(key); return idx >= 0 ? clean(cols[idx]) : ''; };
+        const yr = parseInt(get('year'));
+        if (!yr) continue;
+        newRows.push({
+          year: yr, date: get('date'), vendor: get('vendor'),
+          description: get('description'), amount: parseFloat(get('amount'))||0,
+          category: get('category'), lineItem: get('line item'),
+          type: get('type') || 'Operating', notes: get('notes')
+        });
+      }
+      if (newRows.length === 0) { alert('No valid rows found.'); return; }
+      if (confirm(`Import ${newRows.length} rows? This will REPLACE the current vendor ledger.`)) {
+        state.vendorLedger = newRows;
+        saveState();
+        renderVendorTab();
+        alert(`Imported ${newRows.length} entries.`);
+      }
+    } catch(err) { alert('Import error: ' + err.message); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 // ═══════════════════════════════════════════════════
