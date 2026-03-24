@@ -286,27 +286,63 @@ input,select,textarea{font-family:inherit;}
 <!-- ══ TAB CONTENT ══ -->
 <div class="container">
 
-  <!-- TAB 1: SETTINGS -->
+  <!-- TAB 1: SETTINGS / OVERVIEW -->
   <div id="tab-settings" class="tab-content active">
-    <div class="card">
-      <div class="card-title">Community Settings</div>
-      <div class="card-sub">These values drive every calculation across all tabs. Update at the start of each fiscal year.</div>
-      <div class="settings-grid" id="settings-form"></div>
-      <div style="margin-top:20px;display:flex;align-items:center;gap:12px;">
-        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-        <span id="settings-saved" style="font-size:.78rem;color:#16a34a;display:none">✓ Saved</span>
+
+    <!-- Key metrics dashboard -->
+    <div id="settings-kpi-row" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+    <div class="two-col">
+      <!-- Year Setup inputs -->
+      <div class="card">
+        <div class="card-title">FY Setup</div>
+        <div class="card-sub">Update these at the start of each fiscal year. All tabs recalculate automatically.</div>
+        <div class="settings-grid" id="settings-form" style="margin-top:16px;"></div>
+        <div style="margin-top:20px;display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+          <span id="settings-saved" style="font-size:.78rem;color:#16a34a;display:none">✓ Saved</span>
+        </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">How to Use This System</div>
-      <div style="font-size:.85rem;line-height:1.8;color:#475569;">
-        <strong style="display:block;margin-bottom:8px;">Annual Planning Workflow:</strong>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">1</span><span><strong>Settings</strong> — Set your community parameters, dues level, and financial assumptions for the year.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">2</span><span><strong>Annual Budget</strong> — Enter your operating budget line by line. Update actuals throughout the year to track spending.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">3</span><span><strong>Capital Plan</strong> — List all planned one-time projects with estimated costs and target years.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">4</span><span><strong>Reserve Forecast</strong> — Auto-calculated 10-year reserve trajectory. No editing needed — just review and act.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;"><span style="background:#1e293b;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">5</span><span><strong>Scenarios</strong> — Test different dues levels and model what happens if homeowners go delinquent on dues.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:#166534;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">🏠</span><span><strong>Homeowner View</strong> — A clean, shareable summary of the budget and financials suitable for homeowners. Print or show on screen.</span></div>
+
+      <!-- How it works -->
+      <div class="card">
+        <div class="card-title">How This Planner Works</div>
+        <div style="font-size:.84rem;line-height:1.75;color:#475569;margin-top:10px;">
+          <p style="margin-bottom:12px;">This is a self-contained financial planning tool for the Hidden Creek HOA board. All data is stored locally in your browser and can be exported as JSON for sharing or archiving.</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#3b82f6;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tab 2</span>
+              <span><strong>Annual Budget</strong> — Build and track the operating budget. Actuals update throughout the year. Compare to 8-year historical averages.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#10b981;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tab 3</span>
+              <span><strong>Capital Plan</strong> — One-time projects drawn from reserves. Costs auto-inflate to the project year.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#8b5cf6;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tab 4</span>
+              <span><strong>Reserve Forecast</strong> — 10-year rolling projection of reserve health, auto-calculated from all inputs.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#f59e0b;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tab 5</span>
+              <span><strong>Scenarios</strong> — Model "what if" — different dues levels or delinquency impacts on reserves.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#ef4444;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tab 6</span>
+              <span><strong>Lots &amp; Revenue</strong> — Track dues collection and impact fees lot by lot. Annual revenue vs. plan.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#64748b;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tab 7</span>
+              <span><strong>Bank</strong> — Log the actual bank balance periodically and compare to what the model expects.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="background:#7c3aed;color:white;border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;">Tabs 8–9</span>
+              <span><strong>History &amp; Vendors</strong> — 8-year historical actuals and full transaction-level vendor ledger for planning context.</span>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:10px 12px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:4px;font-size:.78rem;color:#1e40af;">
+            <strong>Sharing tip:</strong> Use the <em>Export JSON</em> button (top right) to save a snapshot. Send the file to another board member — they import it to see your current working version.
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -345,6 +381,18 @@ input,select,textarea{font-family:inherit;}
         <div class="card" style="margin-top:0;">
           <div class="card-title">Budget vs. Actuals YTD</div>
           <div class="chart-wrap" style="height:200px;"><canvas id="budget-bar"></canvas></div>
+        </div>
+        <div class="card" style="margin-top:0;">
+          <div class="card-title">📝 Budget Planning Notes</div>
+          <div class="card-sub">One note per bullet — rationale, decisions, board directives. Auto-saved.</div>
+          <ul id="budget-notes-list" style="list-style:none;padding:0;margin:12px 0 10px;display:flex;flex-direction:column;gap:6px;"></ul>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="budget-note-new"
+              style="flex:1;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.85rem;font-family:inherit;outline:none;"
+              placeholder="Add a note and press Enter…"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();addBudgetNote();}">
+            <button class="btn btn-primary btn-sm" onclick="addBudgetNote()">+ Add</button>
+          </div>
         </div>
       </div>
     </div>
@@ -455,6 +503,16 @@ input,select,textarea{font-family:inherit;}
 
   <!-- TAB 6: LOTS & REVENUE -->
   <div id="tab-lots" class="tab-content">
+
+    <!-- Annual revenue summary -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Annual Revenue Plan</div>
+      <div class="card-sub" id="rev-summary-sub">Full-year dues collection progress vs. annual budget</div>
+      <div id="rev-annual-kpis" style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 10px;"></div>
+      <!-- Collection progress bar -->
+      <div id="rev-progress-wrap" style="margin-top:4px;"></div>
+    </div>
+
     <div id="lots-kpis" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;"></div>
 
     <!-- Dues tracker -->
@@ -894,130 +952,7 @@ input,select,textarea{font-family:inherit;}
 // ═══════════════════════════════════════════════════
 // 1. DEFAULT STATE
 // ═══════════════════════════════════════════════════
-const DEFAULT_STATE = {
-  settings: {
-    hoaName: "Hidden Creek HOA",
-    fiscalYear: 2026,
-    lots: 29,
-    assessmentPerLot: 1800,
-    startingReserve: 40000,
-    minReserve: 30000,
-    interestRate: 3.5,
-    opexInflation: 3.0,
-    capexInflation: 3.0
-  },
-  budget: {
-    categories: [
-      { id:"admin", name:"Administrative", items:[
-        { id:"a1", name:"Bank service charges",                    budget:30,    actual:0, notes:"" },
-        { id:"a2", name:"PO Box / postage",                        budget:72,    actual:0, notes:"" }
-      ]},
-      { id:"grounds", name:"Grounds & Roads", items:[
-        { id:"g1", name:"Landscaping / mowing",                    budget:6000,  actual:0, notes:"" },
-        { id:"g2", name:"Dust control (road)",                     budget:1200,  actual:0, notes:"" },
-        { id:"g3", name:"Road maintenance (potholes/spot repairs)", budget:3500,  actual:0, notes:"" },
-        { id:"g4", name:"Snow plowing",                            budget:1200,  actual:0, notes:"" },
-        { id:"g5", name:"Tree removal",                            budget:1500,  actual:0, notes:"" }
-      ]},
-      { id:"insurance", name:"Insurance & Professional", items:[
-        { id:"i1", name:"Insurance",                               budget:1800,  actual:0, notes:"" },
-        { id:"i2", name:"Professional fees (legal/accounting)",    budget:500,   actual:0, notes:"" }
-      ]},
-      { id:"pool", name:"Pool & Amenities", items:[
-        { id:"p1", name:"Pool service / maintenance contract",     budget:9000,  actual:0, notes:"" },
-        { id:"p2", name:"Pool mechanicals (operating)",            budget:2000,  actual:0, notes:"" },
-        { id:"p3", name:"Pool supplies & chemicals",               budget:700,   actual:0, notes:"" },
-        { id:"p4", name:"Pool licenses & inspections",             budget:325,   actual:0, notes:"" },
-        { id:"p5", name:"Pest service (pool area)",                budget:230,   actual:0, notes:"" },
-        { id:"p6", name:"Hardscape maintenance",                   budget:500,   actual:0, notes:"" },
-        { id:"p7", name:"Weekly patio / restroom cleaning",        budget:1700,  actual:0, notes:"" }
-      ]},
-      { id:"utilities", name:"Utilities", items:[
-        { id:"u1", name:"Electric / utilities",                    budget:2400,  actual:0, notes:"" },
-        { id:"u2", name:"Telephone / internet",                    budget:1000,  actual:0, notes:"" }
-      ]}
-    ]
-  },
-  capitalProjects: [
-    { id:"cp1", name:"Neighborhood sign / entry",    category:"Grounds & Roads",        year:2026, baseCost:10000, inflOverride:null, notes:"Board priority; base year — no inflation", status:"approved" },
-    { id:"cp2", name:"Neighborhood walking paths",   category:"Grounds & Roads",        year:2027, baseCost:15000, inflOverride:null, notes:"Placeholder — need contractor estimate",   status:"planned"  },
-    { id:"cp3", name:"Pool pump replacement",        category:"Pool & Amenities",       year:2030, baseCost:5000,  inflOverride:null, notes:"Cost estimate; replace as needed",          status:"planned"  },
-    { id:"cp4", name:"Pool liner replacement",       category:"Pool & Amenities",       year:2031, baseCost:9500,  inflOverride:null, notes:"Installed 2021 — assume 10-yr life",        status:"planned"  },
-    { id:"cp5", name:"Pool heater replacement",      category:"Pool & Amenities",       year:2031, baseCost:4500,  inflOverride:null, notes:"Installed 2021 — assume 10-yr life",        status:"planned"  },
-    { id:"cp6", name:"Pool cover (winter)",          category:"Pool & Amenities",       year:2032, baseCost:4500,  inflOverride:null, notes:"Installed 2022; 10-yr life",                status:"planned"  },
-    { id:"cp7", name:"Road re-grade & cap",          category:"Grounds & Roads",        year:2033, baseCost:75000, inflOverride:null, notes:"Next major road project — $75k base; timing TBD", status:"planned" },
-    { id:"cp8", name:"Pool filter replacement",      category:"Pool & Amenities",       year:2034, baseCost:4000,  inflOverride:null, notes:"Replaced 2024 — 10-yr life",               status:"planned"  },
-    { id:"cp9", name:"Pool mechanicals reserve",     category:"Pool & Amenities",       year:2035, baseCost:5000,  inflOverride:null, notes:"Placeholder for misc pool capital",         status:"planned"  }
-  ],
-  lotRoster: Array.from({length:29}, (_,i) => ({
-    id: i+1,
-    owner: "",
-    address: "Lot " + (i+1)
-  })),
-  duesPayments: [],
-  impactFeeRecords: [],
-  bankEntries: [],
-  historicalData: {
-    years: [2018,2019,2020,2021,2022,2023,2024,2025],
-    categories: [
-      { id:"admin", name:"Administrative",
-        totals:[30,93,56,81,116,68,98,72], avg8:77,
-        items:[
-          { name:"Bank service charges",      values:[30,15,0,25,54,0,26,0],   avg8:30 },
-          { name:"PO Box / postage",           values:[0,78,56,56,62,68,72,72], avg8:66 }
-        ]
-      },
-      { id:"grounds", name:"Grounds & Roads",
-        totals:[4670,4603,6075,8765,16676,8175,8025,7921], avg8:8114,
-        items:[
-          { name:"Landscaping / mowing",                    values:[900,1226,1505,3395,4030,2865,4245,5565], avg8:2966 },
-          { name:"Dust control (road)",                     values:[685,765,835,728,1002,0,1130,1156],       avg8:900  },
-          { name:"Road maintenance (potholes/spot repairs)", values:[900,1852,1625,3467,7944,4760,1650,0],    avg8:3171 },
-          { name:"Snow plowing",                            values:[900,760,510,1070,1800,350,1000,1200],    avg8:949  },
-          { name:"Tree removal",                            values:[1285,0,1600,1850,1900,200,0,0],          avg8:1367 }
-        ]
-      },
-      { id:"insurance", name:"Insurance & Professional",
-        totals:[1781,1722,1634,1559,1597,1560,1778,1762], avg8:1674,
-        items:[
-          { name:"Insurance",              values:[1406,1307,1544,1459,1497,1560,1778,1712], avg8:1533 },
-          { name:"Professional fees",      values:[375,415,90,100,100,0,0,50],               avg8:188  }
-        ]
-      },
-      { id:"pool", name:"Pool & Amenities",
-        totals:[9387,8331,8444,13795,11715,8147,13638,11050], avg8:10563,
-        items:[
-          { name:"Pool service / maintenance contract", values:[9015,7435,8107,8295,10515,7205,8600,8800], avg8:8496 },
-          { name:"Pool supplies & chemicals",          values:[372,392,262,508,353,0,891,671],             avg8:493  },
-          { name:"Pool licenses & inspections",        values:[0,284,0,220,70,81,81,316],                  avg8:175  },
-          { name:"Pool mechanicals (operating)",       values:[0,0,0,0,0,0,4066,1033],                     avg8:2550 },
-          { name:"Pest service (pool area)",           values:[0,220,75,150,75,150,0,230],                  avg8:150  },
-          { name:"Hardscape maintenance",              values:[0,0,0,4622,702,711,0,0],                     avg8:2012 }
-        ]
-      },
-      { id:"utilities", name:"Utilities",
-        totals:[3062,3008,3812,3631,3749,3182,3817,3167], avg8:3428,
-        items:[
-          { name:"Electric / utilities",   values:[2084,2027,2468,2329,2955,2352,2403,2294], avg8:2364 },
-          { name:"Telephone / internet",   values:[978,981,1344,1302,793,830,1414,873],      avg8:1064 }
-        ]
-      }
-    ],
-    grandTotals:[18930,17757,20021,27831,33853,21132,27356,23972], grandAvg8:23856,
-    capitalEvents:[
-      { year:2020, project:"Road re-grade (one-time)",   amount:28675,  category:"Grounds & Roads",   notes:"50% funded by special assessment" },
-      { year:2021, project:"Pool liner",                 amount:9500,   category:"Pool & Amenities",   notes:"Installed 2021" },
-      { year:2021, project:"Pool heater",                amount:4500,   category:"Pool & Amenities",   notes:"Installed 2021" },
-      { year:2021, project:"Pool driveway upgrade",      amount:1745,   category:"Grounds & Roads",    notes:"Stone borders" },
-      { year:2022, project:"Pool cover",                 amount:4310,   category:"Pool & Amenities",   notes:"Installed 2022" },
-      { year:2023, project:"Road survey (Merritt)",      amount:5200,   category:"Grounds & Roads",    notes:"Engineering/survey" },
-      { year:2024, project:"Road survey (Merritt)",      amount:6750,   category:"Grounds & Roads",    notes:"Engineering/survey" },
-      { year:2025, project:"Road re-grade (Hollerbach)", amount:191735, category:"Grounds & Roads",    notes:"Major road project; partially reserve-funded" }
-    ]
-  },
-  vendorLedger: [{"year":2018,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":30.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Inserv","description":"Dust control Road","amount":684.9,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":900.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":900.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":900.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1285.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1405.53,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":375.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":9015.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":371.57,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":977.67,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2084.38,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":15.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":78.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Inserv","description":"Dust control Road","amount":765.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1226.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1852.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":760.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1307.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":415.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7435.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":392.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":284.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pest Service","amount":220.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":981.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2027.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Inserv","description":"Dust control Road","amount":835.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1505.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1625.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":510.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1600.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1544.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":90.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8107.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":262.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pest Service","amount":75.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1344.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2468.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Merritt","description":"Road re-grade (one-time)","amount":28675.0,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"50% funded by special assessment"},{"year":2021,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":25.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Inserv","description":"Dust control Road","amount":728.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":3395.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":3467.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1070.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1850.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1459.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8295.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":508.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":220.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pest Service","amount":150.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":4622.0,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1302.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2329.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool liner","amount":9500.0,"category":"Pool & Amenities","lineItem":"Pool liner (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool heater","amount":4500.0,"category":"Pool & Amenities","lineItem":"Pool heater (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"HOA","description":"Pool driveway upgrade","amount":1745.0,"category":"Grounds & Roads","lineItem":"Pool driveway upgrade (capital)","type":"Capital","notes":"Stone borders"},{"year":2022,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":54.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":62.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1002.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4030.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":7944.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1800.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1900.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1497.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":10515.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":353.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":70.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pest Service","amount":75.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":702.0,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":793.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2955.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool cover","amount":4310.0,"category":"Pool & Amenities","lineItem":"Pool cover (capital)","type":"Capital","notes":"Installed 2022"},{"year":2023,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":68.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":2865.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":4760.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":350.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":200.0,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1560.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7205.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"HOA","description":"Pest Service","amount":150.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":711.0,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":830.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2352.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":5200.0,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2024,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":26.0,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1130.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4245.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1650.0,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1000.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1778.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8600.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":891.0,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":4066.0,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1414.0,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2403.0,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":6750.0,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2025,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72.0,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1156.0,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":5565.0,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1200.0,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1712.0,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":50.0,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8800.0,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":671.06,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":316.0,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":1033.0,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pest Service","amount":230.0,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":873.39,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2293.54,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Merritt","description":"Road re-grade (Hollerbach)","amount":191735.0,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"Major road project; partially reserve-funded"}]
-};
-
+const DEFAULT_STATE = {"settings":{"hoaName":"Hidden Creek HOA","fiscalYear":2026,"lots":29,"assessmentPerLot":1800,"startingReserve":40600,"minReserve":30000,"interestRate":4,"opexInflation":3,"capexInflation":3,"impactFees":2000,"impactFeeYear":2026},"budget":{"categories":[{"id":"admin","name":"Administrative","items":[{"id":"a1","name":"Bank service charges","budget":30,"actual":0,"notes":""},{"id":"a2","name":"PO Box / postage","budget":72,"actual":0,"notes":""},{"id":"idmn1yjetof1jg","name":"Hidden Creek domain","budget":100,"actual":0,"notes":""}]},{"id":"grounds","name":"Grounds & Roads","items":[{"id":"g1","name":"Landscaping / mowing","budget":6000,"actual":0,"notes":""},{"id":"g2","name":"Dust control (road)","budget":1200,"actual":0,"notes":""},{"id":"g3","name":"Road maintenance (potholes/spot repairs)","budget":5000,"actual":0,"notes":""},{"id":"g4","name":"Snow plowing","budget":1800,"actual":0,"notes":""},{"id":"g5","name":"Tree removal","budget":4000,"actual":0,"notes":""}]},{"id":"insurance","name":"Insurance & Professional","items":[{"id":"i1","name":"Insurance","budget":1800,"actual":0,"notes":""},{"id":"i2","name":"Professional fees (legal/accounting)","budget":500,"actual":0,"notes":""}]},{"id":"pool","name":"Pool & Amenities","items":[{"id":"p1","name":"Pool service / maintenance contract","budget":9000,"actual":0,"notes":""},{"id":"p2","name":"Pool mechanicals (operating)","budget":2000,"actual":0,"notes":""},{"id":"p3","name":"Pool supplies & chemicals","budget":700,"actual":0,"notes":""},{"id":"p4","name":"Pool licenses & inspections","budget":325,"actual":0,"notes":""},{"id":"p5","name":"Pest service (pool area)","budget":230,"actual":0,"notes":""},{"id":"p6","name":"Hardscape maintenance","budget":500,"actual":0,"notes":""},{"id":"p7","name":"Weekly patio / restroom cleaning","budget":1700,"actual":0,"notes":""}]},{"id":"utilities","name":"Utilities","items":[{"id":"u1","name":"Electric / utilities","budget":2400,"actual":0,"notes":""},{"id":"u2","name":"Telephone / internet","budget":1000,"actual":0,"notes":""}]}]},"capitalProjects":[{"id":"cp1","name":"Neighborhood sign / entry","category":"Grounds & Roads","year":2026,"baseCost":10000,"inflOverride":null,"notes":"Board priority; base year \u2014 no inflation","status":"approved"},{"id":"cp2","name":"Neighborhood walking paths","category":"Grounds & Roads","year":2027,"baseCost":15000,"inflOverride":null,"notes":"Placeholder \u2014 need contractor estimate","status":"planned"},{"id":"cp3","name":"Pool pump replacement","category":"Pool & Amenities","year":2030,"baseCost":5000,"inflOverride":null,"notes":"Cost estimate; replace as needed","status":"planned"},{"id":"cp4","name":"Pool liner replacement","category":"Pool & Amenities","year":2031,"baseCost":9500,"inflOverride":null,"notes":"Installed 2021 \u2014 assume 10-yr life","status":"planned"},{"id":"cp5","name":"Pool heater replacement","category":"Pool & Amenities","year":2031,"baseCost":4500,"inflOverride":null,"notes":"Installed 2021 \u2014 assume 10-yr life","status":"planned"},{"id":"cp6","name":"Pool cover (winter)","category":"Pool & Amenities","year":2032,"baseCost":4500,"inflOverride":null,"notes":"Installed 2022; 10-yr life","status":"planned"},{"id":"cp7","name":"Road re-grade & cap","category":"Grounds & Roads","year":2033,"baseCost":75000,"inflOverride":null,"notes":"Next major road project \u2014 $75k base; timing TBD","status":"planned"},{"id":"cp8","name":"Pool filter replacement","category":"Pool & Amenities","year":2034,"baseCost":4000,"inflOverride":null,"notes":"Replaced 2024 \u2014 10-yr life","status":"planned"},{"id":"cp9","name":"Pool mechanicals reserve","category":"Pool & Amenities","year":2035,"baseCost":5000,"inflOverride":null,"notes":"Placeholder for misc pool capital","status":"planned"}],"lotRoster":[{"id":1,"owner":"","address":"Lot 1"},{"id":2,"owner":"","address":"Lot 2"},{"id":3,"owner":"","address":"Lot 3"},{"id":4,"owner":"","address":"Lot 4"},{"id":5,"owner":"","address":"Lot 5"},{"id":6,"owner":"","address":"Lot 6"},{"id":7,"owner":"","address":"Lot 7"},{"id":8,"owner":"","address":"Lot 8"},{"id":9,"owner":"","address":"Lot 9"},{"id":10,"owner":"","address":"Lot 10"},{"id":11,"owner":"","address":"Lot 11"},{"id":12,"owner":"","address":"Lot 12"},{"id":13,"owner":"","address":"Lot 13"},{"id":14,"owner":"","address":"Lot 14"},{"id":15,"owner":"","address":"Lot 15"},{"id":16,"owner":"","address":"Lot 16"},{"id":17,"owner":"","address":"Lot 17"},{"id":18,"owner":"","address":"Lot 18"},{"id":19,"owner":"","address":"Lot 19"},{"id":20,"owner":"","address":"Lot 20"},{"id":21,"owner":"","address":"Lot 21"},{"id":22,"owner":"","address":"Lot 22"},{"id":23,"owner":"","address":"Lot 23"},{"id":24,"owner":"","address":"Lot 24"},{"id":25,"owner":"","address":"Lot 25"},{"id":26,"owner":"","address":"Lot 26"},{"id":27,"owner":"","address":"Lot 27"},{"id":28,"owner":"","address":"Lot 28"},{"id":29,"owner":"","address":"Lot 29"}],"duesPayments":[{"lotId":1,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":2,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":3,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":4,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":5,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":6,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":7,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":8,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":9,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":10,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":11,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":12,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":13,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":14,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":15,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":16,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":17,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":18,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":19,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":20,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":21,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":22,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":23,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":24,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":25,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":26,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":27,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":28,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":29,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""}],"impactFeeRecords":[],"bankEntries":[],"budgetNotes":["Tree removal - anticipating removal of Sinai tree and other cleanup identified","Pool - hardscape & maintenance $$ to include flowers (~ $300) and furniture / umbrellas","Still need to factor $$ for surveillance camera","NOTE - have not budgeted for leak repair"],"historicalData":{"years":[2018,2019,2020,2021,2022,2023,2024,2025],"categories":[{"id":"admin","name":"Administrative","totals":[30,93,56,81,116,68,98,72],"avg8":77,"items":[{"name":"Bank service charges","values":[30,15,0,25,54,0,26,0],"avg8":30},{"name":"PO Box / postage","values":[0,78,56,56,62,68,72,72],"avg8":66}]},{"id":"grounds","name":"Grounds & Roads","totals":[4670,4603,6075,8765,16676,8175,8025,7921],"avg8":8114,"items":[{"name":"Landscaping / mowing","values":[900,1226,1505,3395,4030,2865,4245,5565],"avg8":2966},{"name":"Dust control (road)","values":[685,765,835,728,1002,0,1130,1156],"avg8":900},{"name":"Road maintenance (potholes/spot repairs)","values":[900,1852,1625,3467,7944,4760,1650,0],"avg8":3171},{"name":"Snow plowing","values":[900,760,510,1070,1800,350,1000,1200],"avg8":949},{"name":"Tree removal","values":[1285,0,1600,1850,1900,200,0,0],"avg8":1367}]},{"id":"insurance","name":"Insurance & Professional","totals":[1781,1722,1634,1559,1597,1560,1778,1762],"avg8":1674,"items":[{"name":"Insurance","values":[1406,1307,1544,1459,1497,1560,1778,1712],"avg8":1533},{"name":"Professional fees","values":[375,415,90,100,100,0,0,50],"avg8":188}]},{"id":"pool","name":"Pool & Amenities","totals":[9387,8331,8444,13795,11715,8147,13638,11050],"avg8":10563,"items":[{"name":"Pool service / maintenance contract","values":[9015,7435,8107,8295,10515,7205,8600,8800],"avg8":8496},{"name":"Pool supplies & chemicals","values":[372,392,262,508,353,0,891,671],"avg8":493},{"name":"Pool licenses & inspections","values":[0,284,0,220,70,81,81,316],"avg8":175},{"name":"Pool mechanicals (operating)","values":[0,0,0,0,0,0,4066,1033],"avg8":2550},{"name":"Pest service (pool area)","values":[0,220,75,150,75,150,0,230],"avg8":150},{"name":"Hardscape maintenance","values":[0,0,0,4622,702,711,0,0],"avg8":2012}]},{"id":"utilities","name":"Utilities","totals":[3062,3008,3812,3631,3749,3182,3817,3167],"avg8":3428,"items":[{"name":"Electric / utilities","values":[2084,2027,2468,2329,2955,2352,2403,2294],"avg8":2364},{"name":"Telephone / internet","values":[978,981,1344,1302,793,830,1414,873],"avg8":1064}]}],"grandTotals":[18930,17757,20021,27831,33853,21132,27356,23972],"grandAvg8":23856,"capitalEvents":[{"year":2020,"project":"Road re-grade (one-time)","amount":28675,"category":"Grounds & Roads","notes":"50% funded by special assessment"},{"year":2021,"project":"Pool liner","amount":9500,"category":"Pool & Amenities","notes":"Installed 2021"},{"year":2021,"project":"Pool heater","amount":4500,"category":"Pool & Amenities","notes":"Installed 2021"},{"year":2021,"project":"Pool driveway upgrade","amount":1745,"category":"Grounds & Roads","notes":"Stone borders"},{"year":2022,"project":"Pool cover","amount":4310,"category":"Pool & Amenities","notes":"Installed 2022"},{"year":2023,"project":"Road survey (Merritt)","amount":5200,"category":"Grounds & Roads","notes":"Engineering/survey"},{"year":2024,"project":"Road survey (Merritt)","amount":6750,"category":"Grounds & Roads","notes":"Engineering/survey"},{"year":2025,"project":"Road re-grade (Hollerbach)","amount":191735,"category":"Grounds & Roads","notes":"Major road project; partially reserve-funded"}]},"vendorLedger":[{"year":2018,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":30,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Inserv","description":"Dust control Road","amount":684.9,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":900,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":900,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":900,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1285,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1405.53,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":375,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":9015,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":371.57,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":977.67,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2084.38,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":15,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":78,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Inserv","description":"Dust control Road","amount":765,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1226,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1852,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":760,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1307,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":415,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7435,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":392,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":284,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pest Service","amount":220,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":981,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2027,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Inserv","description":"Dust control Road","amount":835,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1505,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1625,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":510,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1600,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1544,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":90,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8107,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":262,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pest Service","amount":75,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1344,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2468,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Merritt","description":"Road re-grade (one-time)","amount":28675,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"50% funded by special assessment"},{"year":2021,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":25,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Inserv","description":"Dust control Road","amount":728,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":3395,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":3467,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1070,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1850,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1459,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8295,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":508,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":220,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pest Service","amount":150,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":4622,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1302,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2329,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool liner","amount":9500,"category":"Pool & Amenities","lineItem":"Pool liner (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool heater","amount":4500,"category":"Pool & Amenities","lineItem":"Pool heater (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"HOA","description":"Pool driveway upgrade","amount":1745,"category":"Grounds & Roads","lineItem":"Pool driveway upgrade (capital)","type":"Capital","notes":"Stone borders"},{"year":2022,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":54,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":62,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1002,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4030,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":7944,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1800,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1900,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1497,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":10515,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":353,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":70,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pest Service","amount":75,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":702,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":793,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2955,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool cover","amount":4310,"category":"Pool & Amenities","lineItem":"Pool cover (capital)","type":"Capital","notes":"Installed 2022"},{"year":2023,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":68,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":2865,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":4760,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":350,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":200,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1560,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7205,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"HOA","description":"Pest Service","amount":150,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":711,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":830,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2352,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":5200,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2024,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":26,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1130,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4245,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1650,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1000,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1778,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8600,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":891,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":4066,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1414,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2403,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":6750,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2025,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1156,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":5565,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1200,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1712,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":50,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8800,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":671.06,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":316,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":1033,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pest Service","amount":230,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":873.39,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2293.54,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Merritt","description":"Road re-grade (Hollerbach)","amount":191735,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"Major road project; partially reserve-funded"}]};
 // ═══════════════════════════════════════════════════
 // 2. STATE MANAGEMENT
 // ═══════════════════════════════════════════════════
@@ -1036,6 +971,13 @@ function loadState() {
       // Specifically: if historicalData or vendorLedger are empty arrays/falsy, reset from default
       if (!state.historicalData || !state.historicalData.years) state.historicalData = def.historicalData;
       if (!state.vendorLedger || state.vendorLedger.length === 0) state.vendorLedger = def.vendorLedger;
+      // Migrate budgetNotes from old string format to array
+      if (typeof state.budgetNotes === 'string') {
+        state.budgetNotes = state.budgetNotes.trim()
+          ? state.budgetNotes.split('\n').map(s => s.trim()).filter(Boolean)
+          : [];
+      }
+      if (!Array.isArray(state.budgetNotes)) state.budgetNotes = [];
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 }
@@ -1182,6 +1124,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => {
     if (b.getAttribute('onclick').includes("'" + tab + "'")) b.classList.add('active');
   });
+  if (tab === 'settings') { renderSettings(); }
   if (tab === 'budget')   { renderBudget(); }
   if (tab === 'capital')  { renderCapital(); }
   if (tab === 'forecast') { renderForecast(); }
@@ -1199,18 +1142,55 @@ function renderSettings() {
   const s = state.settings;
   document.getElementById('header-title').textContent =
     s.hoaName + ' — Financial Planning System — FY ' + s.fiscalYear;
+
+  // KPI dashboard row
+  const totalBudget = budgetTotal();
+  const annualRevenue = s.lots * s.assessmentPerLot;
+  const surplus = annualRevenue - totalBudget;
+  const capProjects = state.capitalProjects.filter(p => p.status !== 'deferred' && p.year === s.fiscalYear).length;
+  const kpiEl = document.getElementById('settings-kpi-row');
+  if (kpiEl) kpiEl.innerHTML = `
+    <div class="kpi-card" style="flex:1;min-width:160px;">
+      <div class="kpi-label">Fiscal Year</div>
+      <div class="kpi-value" style="font-size:2rem;">${s.fiscalYear}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:160px;">
+      <div class="kpi-label">Annual Dues Revenue</div>
+      <div class="kpi-value">${fmt(annualRevenue)}</div>
+      <div class="kpi-sub">${s.lots} lots × ${fmt(s.assessmentPerLot)}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:160px;">
+      <div class="kpi-label">Operating Budget</div>
+      <div class="kpi-value">${fmt(totalBudget)}</div>
+      <div class="kpi-sub">across all categories</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:160px;">
+      <div class="kpi-label">Dues Surplus / (Deficit)</div>
+      <div class="kpi-value" style="color:${surplus>=0?'#16a34a':'#dc2626'}">${fmt(surplus)}</div>
+      <div class="kpi-sub">revenue minus operating budget</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:160px;">
+      <div class="kpi-label">Reserve Balance (Jan 1)</div>
+      <div class="kpi-value">${fmt(s.startingReserve)}</div>
+      <div class="kpi-sub">target min: ${fmt(s.minReserve)}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:160px;">
+      <div class="kpi-label">Capital Projects (${s.fiscalYear})</div>
+      <div class="kpi-value">${capProjects}</div>
+      <div class="kpi-sub">scheduled this year</div>
+    </div>`;
+
+  // Settings form — key annual inputs only (no HOA name)
   document.getElementById('settings-form').innerHTML = `
-    <div class="field"><label>HOA Name</label><input type="text" id="s-name" value="${s.hoaName}"></div>
     <div class="field"><label>Fiscal Year</label><input type="number" id="s-fy" value="${s.fiscalYear}" min="2020" max="2040"></div>
-    <div class="field"><label>Number of Lots (dues-paying)</label><input type="number" id="s-lots" value="${s.lots}" min="1"><span class="hint">Update if community grows</span></div>
-    <div class="field"><label>Annual Dues / Lot ($)</label><input type="number" id="s-assess" value="${s.assessmentPerLot}" min="0"></div>
-    <div class="field"><label>Starting Reserve Balance ($)</label><input type="number" id="s-startres" value="${s.startingReserve}" min="0"><span class="hint">Balance on Jan 1 of fiscal year</span></div>
-    <div class="field"><label>Minimum Reserve Target ($)</label><input type="number" id="s-minres" value="${s.minReserve}" min="0"><span class="hint">Board-set floor — model flags if below</span></div>
-    <div class="field"><label>Reserve Interest Rate (%)</label><input type="number" id="s-rate" value="${s.interestRate}" step="0.1" min="0"><span class="hint">HYSA or money market rate</span></div>
-    <div class="field"><label>Default Opex Inflation (%)</label><input type="number" id="s-opinfl" value="${s.opexInflation}" step="0.1" min="0"><span class="hint">Applied to budget in forecast years</span></div>
-    <div class="field"><label>Default Capital Inflation (%)</label><input type="number" id="s-capinfl" value="${s.capexInflation}" step="0.1" min="0"><span class="hint">Applied to capital project base costs</span></div>
+    <div class="field"><label>Annual Dues / Lot ($)</label><input type="number" id="s-assess" value="${s.assessmentPerLot}" min="0"><span class="hint">Sets revenue baseline for the year</span></div>
+    <div class="field"><label>Starting Reserve Balance ($)</label><input type="number" id="s-startres" value="${s.startingReserve}" min="0"><span class="hint">Actual balance on Jan 1</span></div>
+    <div class="field"><label>Minimum Reserve Target ($)</label><input type="number" id="s-minres" value="${s.minReserve}" min="0"><span class="hint">Board-set floor — forecast flags if breached</span></div>
+    <div class="field"><label>Reserve Interest Rate (%)</label><input type="number" id="s-rate" value="${s.interestRate}" step="0.1" min="0"><span class="hint">HYSA / money market rate</span></div>
+    <div class="field"><label>Opex Inflation (%)</label><input type="number" id="s-opinfl" value="${s.opexInflation}" step="0.1" min="0"><span class="hint">Applied to operating budget in forecast years</span></div>
+    <div class="field"><label>Capital Inflation (%)</label><input type="number" id="s-capinfl" value="${s.capexInflation}" step="0.1" min="0"><span class="hint">Applied to capital project base costs</span></div>
+    <div class="field"><label>Number of Lots</label><input type="number" id="s-lots" value="${s.lots}" min="1"><span class="hint">Update only if community size changes</span></div>
   `;
-  // Live preview for modal inflation
   document.querySelectorAll('#s-capinfl,#mp-cost,#mp-year,#mp-infl').forEach(el => {
     if (el) el.addEventListener('input', updateModalPreview);
   });
@@ -1218,7 +1198,6 @@ function renderSettings() {
 
 function saveSettings() {
   const s = state.settings;
-  s.hoaName       = document.getElementById('s-name').value;
   s.fiscalYear    = parseInt(document.getElementById('s-fy').value) || 2026;
   s.lots          = parseInt(document.getElementById('s-lots').value) || 29;
   s.assessmentPerLot = parseFloat(document.getElementById('s-assess').value) || 0;
@@ -1241,6 +1220,66 @@ function renderBudget() {
   renderBudgetTable();
   renderBudgetCharts();
   renderHouseholdBreakdown();
+  renderBudgetNotes();
+}
+
+function renderBudgetNotes() {
+  const list = document.getElementById('budget-notes-list');
+  if (!list) return;
+  const notes = state.budgetNotes || [];
+  if (notes.length === 0) {
+    list.innerHTML = `<li style="font-size:.82rem;color:#94a3b8;font-style:italic;padding:4px 0;">No notes yet — add the first one below.</li>`;
+    return;
+  }
+  list.innerHTML = notes.map((note, i) => `
+    <li style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;background:#f8fafc;border-radius:7px;border-left:3px solid #3b82f6;">
+      <span style="color:#3b82f6;font-weight:700;flex-shrink:0;margin-top:1px;">•</span>
+      <span id="note-text-${i}" style="flex:1;font-size:.85rem;line-height:1.5;color:#1e293b;cursor:pointer;"
+        onclick="startEditNote(${i})">${escHtml(note)}</span>
+      <button onclick="deleteNote(${i})" title="Delete"
+        style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:.8rem;padding:0 2px;flex-shrink:0;line-height:1;"
+        onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">✕</button>
+    </li>`).join('');
+}
+
+function addBudgetNote() {
+  const input = document.getElementById('budget-note-new');
+  const text = (input.value || '').trim();
+  if (!text) return;
+  if (!Array.isArray(state.budgetNotes)) state.budgetNotes = [];
+  state.budgetNotes.push(text);
+  input.value = '';
+  saveState();
+  renderBudgetNotes();
+}
+
+function deleteNote(idx) {
+  state.budgetNotes.splice(idx, 1);
+  saveState();
+  renderBudgetNotes();
+}
+
+function startEditNote(idx) {
+  const span = document.getElementById('note-text-' + idx);
+  if (!span) return;
+  const current = state.budgetNotes[idx] || '';
+  span.outerHTML = `<input id="note-edit-${idx}" type="text" value="${escHtml(current)}"
+    style="flex:1;border:1px solid #93c5fd;border-radius:5px;padding:3px 8px;font-size:.85rem;font-family:inherit;outline:none;"
+    onblur="commitEditNote(${idx})"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();commitEditNote(${idx});}
+               if(event.key==='Escape'){renderBudgetNotes();}">`;
+  const el = document.getElementById('note-edit-' + idx);
+  if (el) { el.focus(); el.select(); }
+}
+
+function commitEditNote(idx) {
+  const el = document.getElementById('note-edit-' + idx);
+  if (!el) return;
+  const val = el.value.trim();
+  if (val) state.budgetNotes[idx] = val;
+  else state.budgetNotes.splice(idx, 1);
+  saveState();
+  renderBudgetNotes();
 }
 
 function renderHouseholdBreakdown() {
@@ -2155,12 +2194,105 @@ function renderDuesTable(year, period) {
   document.getElementById('dues-tbody').innerHTML = rows;
 }
 
+function renderAnnualRevenueSummary(year) {
+  ensureLotRoster();
+  const s = state.settings;
+  const lots = s.lots;
+  const annualDuesPerLot = s.assessmentPerLot;
+  const halfDues = annualDuesPerLot / 2;
+  const annualDuesBudget = lots * annualDuesPerLot;
+
+  // Collect H1 + H2 amounts
+  let h1Collected = 0, h2Collected = 0;
+  let h1Paid = 0, h2Paid = 0;
+  for (let id = 1; id <= lots; id++) {
+    const h1 = getLotPayment(id, year, 'H1');
+    const h2 = getLotPayment(id, year, 'H2');
+    if (h1 && (h1.status === 'paid' || h1.status === 'partial')) {
+      h1Collected += h1.status === 'paid' ? halfDues : (h1.amount || 0);
+      if (h1.status === 'paid') h1Paid++;
+    }
+    if (h2 && (h2.status === 'paid' || h2.status === 'partial')) {
+      h2Collected += h2.status === 'paid' ? halfDues : (h2.amount || 0);
+      if (h2.status === 'paid') h2Paid++;
+    }
+  }
+
+  const totalCollected = h1Collected + h2Collected;
+  const impactFees = (state.impactFeeRecords || [])
+    .filter(r => r.date && r.date.startsWith(String(year)))
+    .reduce((s, r) => s + (r.amount || 0), 0);
+  const totalRevenue = totalCollected + impactFees;
+  const pctDues = annualDuesBudget > 0 ? Math.round(totalCollected / annualDuesBudget * 100) : 0;
+  const remaining = annualDuesBudget - totalCollected;
+  const lotsOutstanding = lots - Math.max(h1Paid, h2Paid);
+
+  // Determine status color
+  const statusColor = pctDues >= 100 ? '#16a34a' : pctDues >= 50 ? '#f59e0b' : '#ef4444';
+  const statusLabel = pctDues >= 100 ? 'On Track ✓' : pctDues >= 50 ? 'In Progress' : 'Behind Plan';
+
+  document.getElementById('rev-summary-sub').textContent =
+    `${year} · ${lots} lots · ${fmt(annualDuesPerLot)}/lot/year · ${fmt(halfDues)}/lot per half`;
+
+  document.getElementById('rev-annual-kpis').innerHTML = `
+    <div class="kpi-card" style="flex:1;min-width:140px;">
+      <div class="kpi-label">Annual Dues Budget</div>
+      <div class="kpi-value">${fmt(annualDuesBudget)}</div>
+      <div class="kpi-sub">${lots} lots × ${fmt(annualDuesPerLot)}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:140px;">
+      <div class="kpi-label">H1 Collected</div>
+      <div class="kpi-value" style="color:#3b82f6;">${fmt(h1Collected)}</div>
+      <div class="kpi-sub">${h1Paid} of ${lots} lots paid</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:140px;">
+      <div class="kpi-label">H2 Collected</div>
+      <div class="kpi-value" style="color:#3b82f6;">${fmt(h2Collected)}</div>
+      <div class="kpi-sub">${h2Paid} of ${lots} lots paid</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:140px;">
+      <div class="kpi-label">Total Dues Collected</div>
+      <div class="kpi-value" style="color:${statusColor};">${fmt(totalCollected)}</div>
+      <div class="kpi-sub">${pctDues}% of annual plan</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:140px;">
+      <div class="kpi-label">Still Outstanding</div>
+      <div class="kpi-value" style="color:${remaining>0?'#ef4444':'#16a34a'};">${remaining > 0 ? fmt(remaining) : '—'}</div>
+      <div class="kpi-sub">${remaining > 0 ? lotsOutstanding + ' lots not fully paid' : 'All collected'}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:140px;">
+      <div class="kpi-label">Impact Fees (${year})</div>
+      <div class="kpi-value">${fmt(impactFees)}</div>
+      <div class="kpi-sub">Total annual revenue: ${fmt(totalRevenue)}</div>
+    </div>`;
+
+  // Progress bar
+  const barPct = Math.min(pctDues, 100);
+  const h1Pct = Math.min(Math.round(h1Collected / annualDuesBudget * 100), 100);
+  const h2Pct = Math.min(Math.round(h2Collected / annualDuesBudget * 100), 100);
+  document.getElementById('rev-progress-wrap').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.78rem;font-weight:600;color:#64748b;">
+      <span>Collection Progress — ${year}</span>
+      <span style="color:${statusColor};">${statusLabel} · ${pctDues}%</span>
+    </div>
+    <div style="background:#f1f5f9;border-radius:999px;height:16px;overflow:hidden;position:relative;">
+      <div style="position:absolute;left:0;top:0;height:100%;width:${h1Pct}%;background:#3b82f6;border-radius:999px 0 0 999px;transition:.3s;"></div>
+      <div style="position:absolute;left:${h1Pct}%;top:0;height:100%;width:${h2Pct}%;background:#93c5fd;transition:.3s;"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:6px;font-size:.72rem;color:#64748b;">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;margin-right:4px;"></span>H1 ${fmt(h1Collected)}</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#93c5fd;border-radius:2px;margin-right:4px;"></span>H2 ${fmt(h2Collected)}</span>
+      <span style="margin-left:auto;">Target: ${fmt(annualDuesBudget)}</span>
+    </div>`;
+}
+
 function renderLotsTab() {
   ensureLotRoster();
   const ySel = document.getElementById('lots-year-sel');
   const pSel = document.getElementById('lots-period-sel');
   const year = parseInt(ySel?.value || state.settings.fiscalYear);
   const period = pSel?.value || 'H1';
+  renderAnnualRevenueSummary(year);
   renderLotsKpis(year, period);
   renderDuesTable(year, period);
   renderImpactTable();
