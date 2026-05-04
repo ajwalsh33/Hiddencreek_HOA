@@ -358,7 +358,7 @@ input,select,textarea{font-family:inherit;}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
           <div class="card-title">⚖ Special Assessment Manager</div>
-          <div class="card-sub">Set a uniform base amount per lot, then add per-lot increments for specific situations. Flows automatically into each lot's balance.</div>
+          <div class="card-sub">Set a uniform base per lot, then add per-lot increments for specific situations. Flows into each lot's balance automatically.</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openAssessmentModal()">+ New Assessment</button>
       </div>
@@ -370,7 +370,7 @@ input,select,textarea{font-family:inherit;}
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
         <div>
           <div class="card-title">🏘 Lot Ledger</div>
-          <div class="card-sub" id="ledger-sub">Showing both invoices for the selected calendar year</div>
+          <div class="card-sub" id="ledger-sub">Both invoices for the selected calendar year · click any badge or "+ Pay" to record a payment</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <select id="lots-year-sel" style="padding:6px 10px;font-size:.85rem;border:1.5px solid #e2e8f0;border-radius:7px;" onchange="renderLotsTab()">
@@ -378,22 +378,23 @@ input,select,textarea{font-family:inherit;}
             <option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
           </select>
           <button class="btn btn-ghost btn-sm" onclick="exportLotsCSV()">⬇ CSV</button>
+          <button id="rollover-btn" class="btn btn-warn btn-sm" onclick="openRolloverModal()" style="display:none;">
+            ↪ Roll Over to Next Year
+          </button>
         </div>
       </div>
 
       <!-- Invoice period tabs -->
       <div style="display:flex;gap:0;margin-bottom:14px;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;">
         <button id="inv-tab-jan" onclick="switchInvoicePeriod('jan')"
-          style="flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;
-                 background:#1e293b;color:white;cursor:pointer;transition:.15s;">
+          style="flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;background:#1e293b;color:white;cursor:pointer;">
           📬 January Invoice<br>
-          <span id="inv-jan-label" style="font-size:.72rem;font-weight:400;opacity:.8;">H2 prior year dues</span>
+          <span id="inv-jan-label" style="font-size:.72rem;font-weight:400;opacity:.8;"></span>
         </button>
         <button id="inv-tab-jul" onclick="switchInvoicePeriod('jul')"
-          style="flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;
-                 background:#f8fafc;color:#64748b;cursor:pointer;border-left:1.5px solid #e2e8f0;transition:.15s;">
+          style="flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;background:#f8fafc;color:#64748b;cursor:pointer;border-left:1.5px solid #e2e8f0;">
           📬 July Invoice<br>
-          <span id="inv-jul-label" style="font-size:.72rem;font-weight:400;opacity:.8;">H1 current year dues</span>
+          <span id="inv-jul-label" style="font-size:.72rem;font-weight:400;opacity:.8;"></span>
         </button>
       </div>
 
@@ -420,12 +421,12 @@ input,select,textarea{font-family:inherit;}
     <!-- Payment History -->
     <div class="card">
       <div class="card-title">💳 Payment History</div>
-      <div class="card-sub">All payments recorded across all invoice periods</div>
+      <div class="card-sub">All payments recorded — click ✕ to remove an entry</div>
       <div style="overflow-x:auto;margin-top:14px;">
         <table class="dues-table" id="payment-history-table">
           <thead><tr>
-            <th>Date</th><th>Lot #</th><th>Owner</th><th>Invoice</th>
-            <th style="text-align:right;">Amount</th><th>Notes</th><th></th>
+            <th>Date</th><th>Lot #</th><th>Owner</th>
+            <th style="text-align:right;">Amount</th><th>Covers</th><th>Notes</th><th></th>
           </tr></thead>
           <tbody id="payment-history-tbody"></tbody>
         </table>
@@ -451,30 +452,6 @@ input,select,textarea{font-family:inherit;}
         </table>
       </div>
     </div>
-
-    <!-- Other Revenue -->
-    <div class="card" style="margin-top:0;" id="other-revenue-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-        <div>
-          <div class="card-title">💵 Other Revenue — Non-Recurring &amp; Pass-Through</div>
-          <div class="card-sub">Arrears collections, program reimbursements, late fees, and any cash received outside regular dues. Flows into the reserve forecast for the fiscal year recorded.</div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="openOtherRevenueModal()">+ Add Revenue</button>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="dues-table" id="other-revenue-table">
-          <thead><tr>
-            <th>Fiscal Year</th><th>Category</th><th>Description</th>
-            <th style="text-align:right;">Budgeted ($)</th>
-            <th style="text-align:right;">Actual ($)</th>
-            <th>Pass-Through?</th><th>Notes</th><th></th>
-          </tr></thead>
-          <tbody id="other-revenue-tbody"></tbody>
-        </table>
-      </div>
-      <div id="other-revenue-totals" style="margin-top:12px;padding:12px 16px;background:#f0fdf4;border-radius:8px;font-size:.85rem;"></div>
-    </div>
-
   </div>
 
   <!-- TAB 3: BUDGET & EXPENSES -->
@@ -891,49 +868,56 @@ input,select,textarea{font-family:inherit;}
 
 
 
-<!-- ══ RECORD PAYMENT MODAL ══ -->
-<div class="modal-overlay" id="record-payment-modal" onclick="if(event.target===this)closeRecordPaymentModal()">
+
+<!-- ══ UNIFIED PAYMENT MODAL ══ -->
+<div class="modal-overlay" id="pay-modal" onclick="if(event.target===this)closePayModal()">
   <div class="modal">
-    <h3 id="rp-modal-title">Record Payment</h3>
-    <input type="hidden" id="rp-lot-id">
-    <input type="hidden" id="rp-year">
+    <h3 id="pm-modal-title">Record Payment</h3>
+    <input type="hidden" id="pm-lot-id">
+    <input type="hidden" id="pm-cal-year">
     <div class="modal-grid">
-      <div class="field">
+      <div class="field" style="grid-column:1/-1">
         <label>Lot</label>
-        <input type="text" id="rp-lot-display" readonly style="background:#f8fafc;">
+        <input type="text" id="pm-lot-display" readonly style="background:#f8fafc;">
       </div>
-      <div class="field">
+      <div class="field" style="grid-column:1/-1">
         <label>Balance Due</label>
-        <input type="text" id="rp-balance-due" readonly style="background:#f8fafc;">
+        <div id="pm-balance-breakdown"
+             style="font-size:.82rem;color:#64748b;padding:8px 12px;background:#f8fafc;
+                    border-radius:6px;border:1.5px solid #e2e8f0;"></div>
+        <div id="pm-net-balance" style="font-size:.85rem;font-weight:700;margin-top:4px;"></div>
       </div>
       <div class="field">
         <label>Amount Received ($)</label>
-        <input type="number" id="rp-amount" step="0.01" placeholder="0.00">
+        <input type="number" id="pm-amount" step="0.01" min="0" placeholder="0.00">
       </div>
       <div class="field">
         <label>Date Received</label>
-        <input type="date" id="rp-date">
+        <input type="date" id="pm-date">
       </div>
       <div class="field">
-        <label>Payment Covers</label>
-        <select id="rp-type">
+        <label>This Payment Covers</label>
+        <select id="pm-covers">
           <option>Full Payment</option>
           <option>Jan Invoice</option>
           <option>Jul Invoice</option>
           <option>Prior Arrears</option>
+          <option>Partial — Arrears + Jan Invoice</option>
+          <option>Partial — Jan + Jul Invoice</option>
           <option>Special Assessment</option>
           <option>Partial Payment</option>
           <option>Other</option>
         </select>
+        <span class="hint">Used for record-keeping — badges update automatically based on total paid.</span>
       </div>
       <div class="field">
         <label>Notes</label>
-        <input type="text" id="rp-notes" placeholder="Check #, method, etc.">
+        <input type="text" id="pm-notes" placeholder="Check #, method, etc.">
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeRecordPaymentModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveRecordedPayment()">Save Payment</button>
+      <button class="btn btn-ghost" onclick="closePayModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePayment_unified()">Save Payment</button>
     </div>
   </div>
 </div>
@@ -954,18 +938,18 @@ input,select,textarea{font-family:inherit;}
       <div class="field">
         <label>Base Amount / Lot ($)</label>
         <input type="number" id="sa-base" min="0" step="0.01"
-               placeholder="e.g. 500 — applied to every lot">
-        <span class="hint">Uniform amount charged to all lots. Set to 0 if assessment is increment-only.</span>
+               placeholder="e.g. 500 — charged to every lot">
+        <span class="hint">Uniform amount for all lots. Set to 0 for increment-only assessments.</span>
       </div>
       <div class="field" style="grid-column:1/-1">
-        <label>Notes / Rationale</label>
-        <input type="text" id="sa-notes" placeholder="Board vote date, project description, etc.">
+        <label>Notes</label>
+        <input type="text" id="sa-notes" placeholder="Board vote date, rationale, etc.">
       </div>
     </div>
     <div style="margin-top:18px;">
       <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;
                   letter-spacing:.05em;color:#64748b;margin-bottom:4px;">
-        Per-Lot Increments ($) — additional charges above the base for specific lots
+        Per-Lot Increments — additional amounts above the base
       </div>
       <div id="sa-lot-amounts"></div>
     </div>
@@ -976,107 +960,25 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- ══ DUES STATUS MODAL ══ -->
-<div class="modal-overlay" id="payment-modal" onclick="if(event.target===this)closePaymentModal()">
-  <div class="modal">
-    <h3 id="pmt-modal-title">Invoice Status</h3>
-    <input type="hidden" id="pmt-lot-id">
-    <input type="hidden" id="pmt-period-id">
-    <div class="modal-grid">
-      <div class="field">
-        <label>Lot</label>
-        <input type="text" id="pmt-lot-display" readonly style="background:#f8fafc;">
-      </div>
-      <div class="field">
-        <label>Invoice</label>
-        <input type="text" id="pmt-period-display" readonly style="background:#f8fafc;">
-      </div>
-      <div class="field">
-        <label>Amount ($)</label>
-        <input type="number" id="pmt-amount" step="0.01">
-      </div>
-      <div class="field">
-        <label>Date</label>
-        <input type="date" id="pmt-date">
-      </div>
-      <div class="field">
-        <label>Status</label>
-        <select id="pmt-status">
-          <option value="paid">Paid in Full</option>
-          <option value="partial">Partial</option>
-          <option value="waived">Waived</option>
-          <option value="unpaid">Unpaid</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Notes</label>
-        <input type="text" id="pmt-notes" placeholder="Check #, method, etc.">
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closePaymentModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="savePayment()">Save</button>
-    </div>
-  </div>
-</div>
-<!-- ══ OTHER REVENUE MODAL ══ -->
-<div class="modal-overlay" id="other-revenue-modal" onclick="if(event.target===this)closeOtherRevenueModal()">
-  <div class="modal">
-    <h3 id="or-modal-title">Add Other Revenue</h3>
-    <input type="hidden" id="or-id">
-    <div class="modal-grid">
-      <div class="field">
-        <label>Fiscal Year</label>
-        <input type="number" id="or-fiscal-year" min="2024" max="2040">
-      </div>
-      <div class="field">
-        <label>Category</label>
-        <select id="or-category">
-          <option>Arrears Collection</option>
-          <option>Pass-Through Reimbursement</option>
-          <option>Late Fee</option>
-          <option>Interest / Investment Income</option>
-          <option>Insurance Proceeds</option>
-          <option>Other Non-Recurring</option>
-        </select>
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label>Description</label>
-        <input type="text" id="or-description"
-               placeholder="e.g. Lot 25 prior arrears collection · Mosquito Squad reimbursements">
-      </div>
-      <div class="field">
-        <label>Budgeted Amount ($)</label>
-        <input type="number" id="or-budgeted" step="0.01" min="0" placeholder="0 if unbudgeted">
-        <span class="hint">Leave 0 if this was not anticipated in the budget</span>
-      </div>
-      <div class="field">
-        <label>Actual Amount Received ($)</label>
-        <input type="number" id="or-amount" step="0.01" min="0" placeholder="0.00">
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-          <input type="checkbox" id="or-passthrough"
-                 style="width:16px;height:16px;accent-color:#7c3aed;">
-          <span>Pass-through / reimbursable program</span>
-        </label>
-        <span class="hint">Check this for programs like Mosquito Squad where the HOA collects
-          from homeowners and pays a vendor. Pass-through revenue is tracked here but excluded
-          from the reserve forecast (offset by the matching expense in the budget).</span>
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label>Notes</label>
-        <input type="text" id="or-notes"
-               placeholder="e.g. 12 lots participated · paid via bank transfer April 15">
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeOtherRevenueModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveOtherRevenue()">Save</button>
-    </div>
-  </div>
-</div>
 
+<!-- ══ ROLLOVER MODAL ══ -->
+<div class="modal-overlay" id="rollover-modal" onclick="if(event.target===this)closeRolloverModal()">
+  <div class="modal" style="width:680px;">
+    <h3 id="rollover-modal-title">Roll Over Balances to Next Year</h3>
+    <div class="notice warning" style="margin-bottom:16px;">
+      Review each lot below. Lots with a zero balance are excluded automatically.
+      Adjust any amounts before confirming — this sets the Prior Balance for each lot
+      in the next year.
+    </div>
+    <div id="rollover-table-wrap" style="overflow-x:auto;max-height:400px;overflow-y:auto;"></div>
+    <div id="rollover-summary" style="margin-top:12px;padding:10px 14px;background:#f8fafc;
+         border-radius:8px;font-size:.85rem;color:#64748b;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRolloverModal()">Cancel</button>
+      <button class="btn btn-warn" onclick="confirmRollover()">↪ Confirm Roll Over</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ IMPACT FEE MODAL ══ -->
 <div class="modal-overlay" id="impact-modal" onclick="if(event.target===this)closeImpactModal()">
@@ -1212,7 +1114,6 @@ function migrateState() {
   if (!state.vendorLedger || state.vendorLedger.length === 0) state.vendorLedger = def.vendorLedger;
   // New fields added in v3+ — initialize if absent
   if (!state.lotPriorBalances)   state.lotPriorBalances = {};
-  if (!state.otherRevenue)       state.otherRevenue = [];
   if (!state.specialAssessments) state.specialAssessments = [];
   if (!state.lotPayments)        state.lotPayments = [];
   // budgetNotes coercion (was stored as string in early versions)
@@ -1320,15 +1221,12 @@ function calcForecast(params = {}) {
     const impact = (state.impactFeeRecords || [])
       .filter(r => r.date && r.date.startsWith(String(year)))
       .reduce((sum, r) => sum + (r.amount || 0), 0);
-    const otherRev = (state.otherRevenue || [])
-      .filter(r => r.fiscalYear === year && !r.deleted)
-      .reduce((sum, r) => sum + (r.amount || 0), 0);
     const interest = Math.round(balance * (s.interestRate / 100));
-    const revenue = dues + impact + interest + otherRev;
+    const revenue = dues + impact + interest;
     const opex = Math.round(opexBase * Math.pow(1 + opexRate, i));
     const capex = capexByYear(year);
     balance = Math.round(balance + revenue - opex - capex);
-    rows.push({ year, dues, impact, otherRev, interest, revenue, opex, capex, endBalance: balance });
+    rows.push({ year, dues, impact, interest, revenue, opex, capex, endBalance: balance });
   }
   return rows;
 }
@@ -1487,7 +1385,6 @@ function renderBudget() {
   renderBudgetCharts();
   renderHouseholdBreakdown();
   renderBudgetNotes();
-  renderOtherRevenue();
 }
 
 function renderBudgetNotes() {
@@ -2065,7 +1962,6 @@ function renderForecast() {
       <td class="text-right text-muted">${fmt(opening)}</td>
       <td class="text-right">${fmt(r.dues)}</td>
       <td class="text-right">${r.impact > 0 ? fmt(r.impact) : '<span class="text-muted">—</span>'}</td>
-      <td class="text-right" style="color:${r.otherRev>0?'#7c3aed':'#94a3b8'}">${r.otherRev>0?fmt(r.otherRev):'—'}</td>
       <td class="text-right">${fmt(r.interest)}</td>
       <td class="text-right" style="font-weight:600;">${fmt(r.revenue)}</td>
       <td class="text-right" style="color:#dc2626;">${fmt(r.opex)}</td>
@@ -2078,7 +1974,6 @@ function renderForecast() {
   thtml += `<tr style="background:#f0f4f8;font-weight:700;"><td>10-YR TOTAL</td><td></td>
     <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.dues,0))}</td>
     <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.impact,0))}</td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+(r.otherRev||0),0))}</td>
     <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.interest,0))}</td>
     <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.revenue,0))}</td>
     <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.opex,0))}</td>
@@ -2472,10 +2367,9 @@ function escHtml(str) {
 }
 
 // ═══════════════════════════════════════════════════
-// 14. LOTS & REVENUE TAB  (v3)
+// 14. REVENUE TAB  (v4 — unified payment ledger)
 // ═══════════════════════════════════════════════════
 
-// Current invoice period selection: 'jan' or 'jul'
 let _invoicePeriod = 'jan';
 
 // ── State bootstrap ──────────────────────────────────────────────────────────
@@ -2492,8 +2386,6 @@ function ensureLotRoster() {
   if (!state.duesPayments)       state.duesPayments = [];
   if (!state.impactFeeRecords)   state.impactFeeRecords = [];
   if (!state.lotPriorBalances)   state.lotPriorBalances = {};
-      if (!state.specialAssessments) state.specialAssessments = [];
-      if (!state.lotPayments)        state.lotPayments = [];
   if (!state.specialAssessments) state.specialAssessments = [];
   if (!state.lotPayments)        state.lotPayments = [];
 }
@@ -2502,21 +2394,18 @@ function periodAmount() {
   return Math.round(state.settings.assessmentPerLot / 2);
 }
 
-// ── Invoice period helpers ───────────────────────────────────────────────────
-// For calendar year Y:
-//   January invoice  = H2 of fiscal year (Y-1),  due Jan Y,  covers Jul–Dec (Y-1)
-//   July invoice     = H1 of fiscal year Y,       due Jul Y,  covers Jan–Jun Y
+// ── Invoice key helpers ──────────────────────────────────────────────────────
+// calYear 2026, period 'jan' → H2 of fiscal year 2025 (due Jan 2026)
+// calYear 2026, period 'jul' → H1 of fiscal year 2026 (due Jul 2026)
 function getInvoiceKey(calYear, period) {
-  // period: 'jan' | 'jul'
   if (period === 'jan') return { fiscalYear: calYear - 1, half: 'H2' };
   return { fiscalYear: calYear, half: 'H1' };
 }
 
 function getInvoiceLabel(calYear, period) {
-  if (period === 'jan') {
-    return `January ${calYear} Invoice (H2 ${calYear-1} dues — Jul–Dec ${calYear-1})`;
-  }
-  return `July ${calYear} Invoice (H1 ${calYear} dues — Jan–Jun ${calYear})`;
+  if (period === 'jan')
+    return `January ${calYear} Invoice — H2 ${calYear-1} dues (Jul–Dec ${calYear-1})`;
+  return `July ${calYear} Invoice — H1 ${calYear} dues (Jan–Jun ${calYear})`;
 }
 
 function getDuesRecord(lotId, fiscalYear, half) {
@@ -2524,50 +2413,99 @@ function getDuesRecord(lotId, fiscalYear, half) {
     p.lotId === lotId && p.year === fiscalYear && p.period === half);
 }
 
+function setDuesRecord(lotId, fiscalYear, half, status, amount, date, notes) {
+  const rec = { lotId, year: fiscalYear, period: half, status, amount, date, notes };
+  const idx = state.duesPayments.findIndex(p =>
+    p.lotId === lotId && p.year === fiscalYear && p.period === half);
+  if (idx >= 0) state.duesPayments[idx] = rec;
+  else state.duesPayments.push(rec);
+}
+
 // ── Special assessment helpers ───────────────────────────────────────────────
 function getLotAssessmentTotal(lotId, calYear) {
   return (state.specialAssessments || [])
     .filter(a => a.calYear === calYear && !a.deleted)
-    .reduce((sum, a) => {
-      const base = a.baseAmount || 0;
-      const incr = (a.increments || {})[lotId] || 0;
-      return sum + base + incr;
-    }, 0);
+    .reduce((sum, a) => sum + (a.baseAmount || 0) + ((a.increments || {})[lotId] || 0), 0);
 }
 
-// ── Lot summary for a calendar year ─────────────────────────────────────────
+// ── Core summary — single source of truth ────────────────────────────────────
 function computeLotSummary(lotId, calYear) {
-  const half = periodAmount();
-  const prior = state.lotPriorBalances[`${lotId}-${calYear}`] || 0;
-  const assessments = getLotAssessmentTotal(lotId, calYear);
-
-  const janKey = getInvoiceKey(calYear, 'jan');
-  const julKey = getInvoiceKey(calYear, 'jul');
-  const janRec = getDuesRecord(lotId, janKey.fiscalYear, janKey.half);
-  const julRec = getDuesRecord(lotId, julKey.fiscalYear, julKey.half);
-
+  const half      = periodAmount();
+  const prior     = state.lotPriorBalances[`${lotId}-${calYear}`] || 0;
+  const assess    = getLotAssessmentTotal(lotId, calYear);
+  const janKey    = getInvoiceKey(calYear, 'jan');
+  const julKey    = getInvoiceKey(calYear, 'jul');
+  const janRec    = getDuesRecord(lotId, janKey.fiscalYear, janKey.half);
+  const julRec    = getDuesRecord(lotId, julKey.fiscalYear, julKey.half);
   const janStatus = janRec?.status || 'unpaid';
   const julStatus = julRec?.status || 'unpaid';
 
-  const janPaid = janStatus === 'paid' ? half
-                : janStatus === 'partial' ? (janRec.amount || 0) : 0;
-  const julPaid = julStatus === 'paid' ? half
-                : julStatus === 'partial' ? (julRec.amount || 0) : 0;
+  // Total payments from the unified ledger for this lot/calYear
+  const payments  = (state.lotPayments || [])
+    .filter(p => p.lotId === lotId && p.calYear === calYear);
+  const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
 
-  // Additional ledger payments for this calendar year
-  const ledgerPaid = (state.lotPayments || [])
-    .filter(p => p.lotId === lotId && p.calYear === calYear)
+  // Arrears collected = portion applied to prior balance
+  const arrearsPaid = payments
+    .filter(p => p.covers === 'Prior Arrears')
     .reduce((s, p) => s + (p.amount || 0), 0);
 
-  const totalCharged = prior + assessments + half + half;
-  const totalPaid = ledgerPaid > 0 ? ledgerPaid : (janPaid + julPaid);
-  const netBalance = totalCharged - totalPaid;
+  const totalCharged = prior + assess + half + half;
+  const netBalance   = totalCharged - totalPaid;
 
-  return {
-    prior, assessments,
-    janStatus, julStatus, janPaid, julPaid,
-    totalCharged, totalPaid, netBalance
-  };
+  return { prior, assess, half, janStatus, julStatus,
+           totalCharged, totalPaid, netBalance, arrearsPaid, payments };
+}
+
+// ── Auto-allocate a payment to update badge statuses ─────────────────────────
+// Called after any payment is saved. Determines what each payment covers
+// and flips H1/H2 badges accordingly.
+function reconcileLotStatus(lotId, calYear) {
+  const half   = periodAmount();
+  const janKey = getInvoiceKey(calYear, 'jan');
+  const julKey = getInvoiceKey(calYear, 'jul');
+  const prior  = state.lotPriorBalances[`${lotId}-${calYear}`] || 0;
+  const assess = getLotAssessmentTotal(lotId, calYear);
+
+  const payments = (state.lotPayments || [])
+    .filter(p => p.lotId === lotId && p.calYear === calYear)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  let remaining = payments.reduce((s, p) => s + (p.amount || 0), 0);
+
+  // Allocation order: prior arrears → assessments → Jan invoice → Jul invoice
+  remaining -= Math.min(remaining, prior + assess);
+
+  // Jan invoice
+  if (remaining >= half) {
+    setDuesRecord(lotId, janKey.fiscalYear, janKey.half, 'paid', half,
+      payments[payments.length-1]?.date || '', 'auto');
+    remaining -= half;
+  } else if (remaining > 0) {
+    setDuesRecord(lotId, janKey.fiscalYear, janKey.half, 'partial', remaining,
+      payments[payments.length-1]?.date || '', 'auto');
+    remaining = 0;
+  } else {
+    // Only reset to unpaid if it wasn't manually set
+    const rec = getDuesRecord(lotId, janKey.fiscalYear, janKey.half);
+    if (rec?.notes === 'auto') {
+      setDuesRecord(lotId, janKey.fiscalYear, janKey.half, 'unpaid', 0, '', 'auto');
+    }
+  }
+
+  // Jul invoice
+  if (remaining >= half) {
+    setDuesRecord(lotId, julKey.fiscalYear, julKey.half, 'paid', half,
+      payments[payments.length-1]?.date || '', 'auto');
+  } else if (remaining > 0) {
+    setDuesRecord(lotId, julKey.fiscalYear, julKey.half, 'partial', remaining,
+      payments[payments.length-1]?.date || '', 'auto');
+  } else {
+    const rec = getDuesRecord(lotId, julKey.fiscalYear, julKey.half);
+    if (rec?.notes === 'auto') {
+      setDuesRecord(lotId, julKey.fiscalYear, julKey.half, 'unpaid', 0, '', 'auto');
+    }
+  }
 }
 
 // ── Main render ──────────────────────────────────────────────────────────────
@@ -2581,6 +2519,7 @@ function renderLotsTab() {
   renderLotLedger(calYear);
   renderPaymentHistory(calYear);
   renderImpactTable();
+  updateRolloverButton(calYear);
 }
 
 function switchInvoicePeriod(period) {
@@ -2593,38 +2532,38 @@ function switchInvoicePeriod(period) {
 }
 
 function renderInvoicePeriodTabs(calYear) {
-  const janBtn = document.getElementById('inv-tab-jan');
-  const julBtn = document.getElementById('inv-tab-jul');
-  if (!janBtn) return;
-  const activeStyle  = 'flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;background:#1e293b;color:white;cursor:pointer;transition:.15s;';
-  const inactiveStyle= 'flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;background:#f8fafc;color:#64748b;cursor:pointer;border-left:1.5px solid #e2e8f0;transition:.15s;';
-  janBtn.style.cssText = _invoicePeriod === 'jan' ? activeStyle : inactiveStyle;
-  julBtn.style.cssText = _invoicePeriod === 'jul' ? activeStyle : inactiveStyle + 'border-left:1.5px solid #e2e8f0;';
-  document.getElementById('inv-jan-label').textContent =
-    `H2 ${calYear-1} dues · due Jan ${calYear}`;
-  document.getElementById('inv-jul-label').textContent =
-    `H1 ${calYear} dues · due Jul ${calYear}`;
+  const jan = document.getElementById('inv-tab-jan');
+  const jul = document.getElementById('inv-tab-jul');
+  if (!jan) return;
+  const on  = 'flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;background:#1e293b;color:white;cursor:pointer;';
+  const off = 'flex:1;padding:10px 16px;border:none;font-size:.82rem;font-weight:600;background:#f8fafc;color:#64748b;cursor:pointer;border-left:1.5px solid #e2e8f0;';
+  jan.style.cssText = _invoicePeriod === 'jan' ? on : off;
+  jul.style.cssText = _invoicePeriod === 'jul' ? on : off + 'border-left:1.5px solid #e2e8f0;';
+  document.getElementById('inv-jan-label').textContent = `H2 ${calYear-1} dues · due Jan ${calYear}`;
+  document.getElementById('inv-jul-label').textContent = `H1 ${calYear} dues · due Jul ${calYear}`;
 }
 
 // ── Revenue KPIs ─────────────────────────────────────────────────────────────
 function renderLotsRevenueKpis(calYear) {
   const lots = state.settings.lots;
   const half = periodAmount();
-  let totalCharged=0, totalPaid=0, prior=0, assess=0,
-      lotsOk=0, lotsOwing=0, janPaidCount=0, julPaidCount=0;
+  let totalCharged=0, totalPaid=0, totalPrior=0, totalAssess=0,
+      lotsOk=0, lotsOwing=0, janPaid=0, julPaid=0, arrearsCollected=0;
 
-  for (let id=1; id<=lots; id++) {
+  for (let id = 1; id <= lots; id++) {
     const s = computeLotSummary(id, calYear);
-    totalCharged += s.totalCharged; totalPaid += s.totalPaid;
-    prior += s.prior; assess += s.assessments;
+    totalCharged    += s.totalCharged;
+    totalPaid       += s.totalPaid;
+    totalPrior      += s.prior;
+    totalAssess     += s.assess;
+    arrearsCollected+= s.arrearsPaid;
     if (s.netBalance <= 0) lotsOk++; else lotsOwing++;
-    if (s.janStatus === 'paid') janPaidCount++;
-    if (s.julStatus === 'paid') julPaidCount++;
+    if (s.janStatus === 'paid') janPaid++;
+    if (s.julStatus === 'paid') julPaid++;
   }
   const impactFees = (state.impactFeeRecords||[])
     .filter(r => r.date && r.date.startsWith(String(calYear)))
     .reduce((s,r) => s+(r.amount||0), 0);
-  const outstanding = totalCharged - totalPaid;
 
   document.getElementById('lots-revenue-kpis').innerHTML = `
     <div class="kpi-card" style="flex:1;min-width:140px;">
@@ -2639,22 +2578,22 @@ function renderLotsRevenueKpis(calYear) {
     </div>
     <div class="kpi-card" style="flex:1;min-width:140px;">
       <div class="kpi-label">Jan Invoice Paid</div>
-      <div class="kpi-value" style="color:#3b82f6;">${janPaidCount}</div>
-      <div class="kpi-sub">of ${lots} lots · ${fmt(janPaidCount*half)}</div>
+      <div class="kpi-value" style="color:#3b82f6;">${janPaid}</div>
+      <div class="kpi-sub">of ${lots} · ${fmt(janPaid*half)}</div>
     </div>
     <div class="kpi-card" style="flex:1;min-width:140px;">
       <div class="kpi-label">Jul Invoice Paid</div>
-      <div class="kpi-value" style="color:#3b82f6;">${julPaidCount}</div>
-      <div class="kpi-sub">of ${lots} lots · ${fmt(julPaidCount*half)}</div>
+      <div class="kpi-value" style="color:#3b82f6;">${julPaid}</div>
+      <div class="kpi-sub">of ${lots} · ${fmt(julPaid*half)}</div>
     </div>
     <div class="kpi-card" style="flex:1;min-width:140px;">
-      <div class="kpi-label">Prior Arrears</div>
-      <div class="kpi-value" style="color:${prior>0?'#d97706':'#94a3b8'}">${prior>0?fmt(prior):'—'}</div>
-      <div class="kpi-sub">carried into ${calYear}</div>
+      <div class="kpi-label">Prior Arrears Carried In</div>
+      <div class="kpi-value" style="color:${totalPrior>0?'#d97706':'#94a3b8'}">${totalPrior>0?fmt(totalPrior):'—'}</div>
+      <div class="kpi-sub">${arrearsCollected>0?fmt(arrearsCollected)+' recovered':'not yet collected'}</div>
     </div>
     <div class="kpi-card" style="flex:1;min-width:140px;">
       <div class="kpi-label">Special Assessments</div>
-      <div class="kpi-value" style="color:${assess>0?'#7c3aed':'#94a3b8'}">${assess>0?fmt(assess):'—'}</div>
+      <div class="kpi-value" style="color:${totalAssess>0?'#7c3aed':'#94a3b8'}">${totalAssess>0?fmt(totalAssess):'—'}</div>
       <div class="kpi-sub">${(state.specialAssessments||[]).filter(a=>a.calYear===calYear&&!a.deleted).length} active</div>
     </div>
     <div class="kpi-card" style="flex:1;min-width:140px;">
@@ -2663,68 +2602,65 @@ function renderLotsRevenueKpis(calYear) {
       <div class="kpi-sub">of ${fmt(totalCharged)} charged</div>
     </div>
     <div class="kpi-card" style="flex:1;min-width:140px;">
-      <div class="kpi-label">Still Outstanding</div>
-      <div class="kpi-value" style="color:${outstanding>0?'#ef4444':'#16a34a'}">${outstanding>0?fmt(outstanding):'—'}</div>
-      <div class="kpi-sub">${outstanding>0?lotsOwing+' lot(s)':'All current'}</div>
+      <div class="kpi-label">Outstanding</div>
+      <div class="kpi-value" style="color:${(totalCharged-totalPaid)>0?'#ef4444':'#16a34a'}">
+        ${(totalCharged-totalPaid)>0?fmt(totalCharged-totalPaid):'—'}
+      </div>
+      <div class="kpi-sub">${(totalCharged-totalPaid)>0?lotsOwing+' lot(s)':'All current'}</div>
     </div>`;
 }
 
 // ── Assessment Manager ────────────────────────────────────────────────────────
 function renderAssessmentManager(calYear) {
-  const assessments = (state.specialAssessments||[])
-    .filter(a => a.calYear === calYear && !a.deleted);
+  const list = (state.specialAssessments||[]).filter(a=>a.calYear===calYear&&!a.deleted);
   const wrap = document.getElementById('assessment-list-wrap');
-  if (!assessments.length) {
+  if (!list.length) {
     wrap.innerHTML = `<p style="color:#94a3b8;font-size:.85rem;font-style:italic;">
       No special assessments for ${calYear}. Click "+ New Assessment" to add one.</p>`;
     return;
   }
-  wrap.innerHTML = assessments.map(a => {
-    const base = a.baseAmount || 0;
-    const totalBase = base * state.settings.lots;
-    const totalIncr = Object.values(a.increments||{}).reduce((s,v)=>s+(v||0),0);
-    const lotCount  = Object.values(a.increments||{}).filter(v=>v>0).length;
+  wrap.innerHTML = list.map(a => {
+    const base  = a.baseAmount || 0;
+    const totBase = base * state.settings.lots;
+    const totIncr = Object.values(a.increments||{}).reduce((s,v)=>s+(v||0),0);
     return `<div style="display:flex;align-items:center;gap:16px;padding:12px 16px;
-                background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;
-                margin-bottom:8px;flex-wrap:wrap;">
+        background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;flex-wrap:wrap;">
       <div style="flex:1;min-width:220px;">
         <div style="font-weight:700;font-size:.9rem;">${escHtml(a.name)}</div>
         <div style="font-size:.75rem;color:#64748b;margin-top:3px;">
-          Base: ${fmt(base)}/lot (${fmt(totalBase)} total) ·
-          ${lotCount} lot${lotCount!==1?'s':''} with increments (+${fmt(totalIncr)}) ·
-          Grand total: ${fmt(totalBase+totalIncr)}
+          Base: ${fmt(base)}/lot · ${fmt(totBase)} total base ·
+          ${Object.keys(a.increments||{}).filter(k=>(a.increments[k]||0)>0).length} lots with increments (+${fmt(totIncr)}) ·
+          Grand total: ${fmt(totBase+totIncr)}
         </div>
       </div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-ghost btn-sm" onclick="openAssessmentModal('${a.id}')">Edit</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteAssessment('${a.id}')"
-                style="color:#ef4444;">✕</button>
-      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openAssessmentModal('${a.id}')">Edit</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteAssessment('${a.id}')" style="color:#ef4444;">✕</button>
     </div>`;
   }).join('');
 }
 
-// ── Lot Ledger Table ──────────────────────────────────────────────────────────
+// ── Lot Ledger ────────────────────────────────────────────────────────────────
 function renderLotLedger(calYear) {
   ensureLotRoster();
   const half = periodAmount();
-  const invKey = getInvoiceKey(calYear, _invoicePeriod);
-  const invLabel = _invoicePeriod === 'jan'
-    ? `Jan ${calYear} (H2 ${calYear-1})`
-    : `Jul ${calYear} (H1 ${calYear})`;
 
-  // Header
   document.getElementById('lot-ledger-thead').innerHTML = `<tr>
     <th style="width:36px;">
       <input type="checkbox" id="select-all-cb" class="cleared-cb"
-             title="Select all" onchange="toggleSelectAll(this)">
+             onchange="toggleSelectAll(this)">
     </th>
     <th style="text-align:left;min-width:70px;">Lot #</th>
     <th style="text-align:left;min-width:140px;">Owner</th>
     <th style="text-align:right;">Prior Bal.</th>
     <th style="text-align:right;">Assessments</th>
-    <th style="text-align:right;">Jan Invoice<br><span style="font-weight:400;font-size:.68rem;color:#94a3b8;">H2 ${calYear-1} · $${half.toLocaleString()}</span></th>
-    <th style="text-align:right;">Jul Invoice<br><span style="font-weight:400;font-size:.68rem;color:#94a3b8;">H1 ${calYear} · $${half.toLocaleString()}</span></th>
+    <th style="text-align:right;">
+      Jan Invoice<br><span style="font-weight:400;font-size:.68rem;color:#94a3b8;">
+      H2 ${calYear-1} · ${fmt(half)}</span>
+    </th>
+    <th style="text-align:right;">
+      Jul Invoice<br><span style="font-weight:400;font-size:.68rem;color:#94a3b8;">
+      H1 ${calYear} · ${fmt(half)}</span>
+    </th>
     <th style="text-align:right;">Total Charged</th>
     <th style="text-align:right;">Total Paid</th>
     <th style="text-align:right;min-width:110px;">Net Balance</th>
@@ -2737,17 +2673,15 @@ function renderLotLedger(calYear) {
 
   roster.forEach(lot => {
     const s = computeLotSummary(lot.id, calYear);
-    totCharged += s.totalCharged; totPaid += s.totalPaid;
-    const balColor = s.netBalance > 0 ? '#dc2626'
-                   : s.netBalance < 0 ? '#2563eb' : '#16a34a';
+    totCharged += s.totalCharged;
+    totPaid    += s.totalPaid;
+    const balColor = s.netBalance > 0 ? '#dc2626' : s.netBalance < 0 ? '#2563eb' : '#16a34a';
     const balLabel = s.netBalance > 0 ? fmt(s.netBalance)
                    : s.netBalance < 0 ? `(${fmt(-s.netBalance)}) CR` : '—';
+    const janHL = _invoicePeriod==='jan' ? 'background:#fffbeb;' : '';
+    const julHL = _invoicePeriod==='jul' ? 'background:#fffbeb;' : '';
 
-    // Highlight the active invoice column
-    const janHighlight = _invoicePeriod==='jan'
-      ? 'background:#fffbeb;' : '';
-    const julHighlight = _invoicePeriod==='jul'
-      ? 'background:#fffbeb;' : '';
+    const badgeLabel = st => st==='paid'?'✓ Paid':st==='partial'?'Partial':st==='waived'?'Waived':'Unpaid';
 
     html += `<tr>
       <td><input type="checkbox" class="cleared-cb lot-cb" data-lot-id="${lot.id}"
@@ -2755,32 +2689,26 @@ function renderLotLedger(calYear) {
       <td><strong>Lot ${lot.id}</strong></td>
       <td><input type="text" value="${escHtml(lot.owner)}" placeholder="Owner name"
           style="width:100%;border:none;background:transparent;font-size:.85rem;"
-          onchange="updateLotOwner(${lot.id}, this.value)"></td>
+          onchange="updateLotOwner(${lot.id},this.value)"></td>
       <td style="text-align:right;">
         <span style="cursor:pointer;padding:2px 6px;border-radius:4px;
               ${s.prior>0?'color:#d97706;font-weight:600;':''}"
               onclick="editPriorBalance(${lot.id},${calYear})"
-              title="Click to edit prior balance">
+              title="Click to edit prior balance carried into ${calYear}">
           ${s.prior>0?fmt(s.prior):'—'}
         </span>
       </td>
-      <td style="text-align:right;">${s.assessments>0?fmt(s.assessments):'—'}</td>
-      <td style="text-align:right;${janHighlight}">
-        <span class="pmt-badge pmt-${s.janStatus}"
-              onclick="openDuesModal(${lot.id},${calYear},'jan')"
-              style="cursor:pointer;">
-          ${s.janStatus==='paid'?'✓ Paid'
-            :s.janStatus==='partial'?'Partial'
-            :s.janStatus==='waived'?'Waived':'Unpaid'}
+      <td style="text-align:right;">${s.assess>0?fmt(s.assess):'—'}</td>
+      <td style="text-align:right;${janHL}">
+        <span class="pmt-badge pmt-${s.janStatus}" style="cursor:pointer;"
+              onclick="openPayModal(${lot.id},${calYear},'jan')">
+          ${badgeLabel(s.janStatus)}
         </span>
       </td>
-      <td style="text-align:right;${julHighlight}">
-        <span class="pmt-badge pmt-${s.julStatus}"
-              onclick="openDuesModal(${lot.id},${calYear},'jul')"
-              style="cursor:pointer;">
-          ${s.julStatus==='paid'?'✓ Paid'
-            :s.julStatus==='partial'?'Partial'
-            :s.julStatus==='waived'?'Waived':'Unpaid'}
+      <td style="text-align:right;${julHL}">
+        <span class="pmt-badge pmt-${s.julStatus}" style="cursor:pointer;"
+              onclick="openPayModal(${lot.id},${calYear},'jul')">
+          ${badgeLabel(s.julStatus)}
         </span>
       </td>
       <td style="text-align:right;font-weight:600;">${fmt(s.totalCharged)}</td>
@@ -2788,12 +2716,11 @@ function renderLotLedger(calYear) {
       <td style="text-align:right;font-weight:700;color:${balColor};">${balLabel}</td>
       <td style="text-align:center;">
         <button class="btn btn-primary btn-sm"
-                onclick="openRecordPaymentModal(${lot.id},${calYear})">+ Pay</button>
+                onclick="openPayModal(${lot.id},${calYear},null)">+ Pay</button>
       </td>
     </tr>`;
   });
 
-  // Totals
   html += `<tr style="background:#1e293b;color:white;font-weight:700;">
     <td colspan="7" style="padding:10px 12px;border-radius:8px 0 0 8px;">TOTALS</td>
     <td style="text-align:right;padding:10px 12px;">${fmt(totCharged)}</td>
@@ -2806,71 +2733,125 @@ function renderLotLedger(calYear) {
   </tr>`;
 
   document.getElementById('lot-ledger-tbody').innerHTML = html;
-  document.getElementById('ledger-sub').textContent =
-    `Calendar year ${calYear} — Jan invoice (H2 ${calYear-1} dues) + Jul invoice (H1 ${calYear} dues)` +
-    (getSelectedLotIds().length ? '' : ' — click either invoice badge to update status');
 }
 
 // ── Payment History ───────────────────────────────────────────────────────────
 function renderPaymentHistory(calYear) {
   ensureLotRoster();
-  const half = periodAmount();
-  const allPmts = [];
+  const payments = (state.lotPayments||[])
+    .filter(p => p.calYear === calYear)
+    .sort((a,b) => (b.date||'').localeCompare(a.date||'')||(a.lotId-b.lotId));
 
-  // New ledger payments
-  (state.lotPayments||[]).filter(p=>p.calYear===calYear).forEach(p=>{
-    const lot = state.lotRoster.find(l=>l.id===p.lotId)||{owner:''};
-    allPmts.push({...p, owner:lot.owner, src:'new'});
-  });
-
-  // Legacy duesPayments — only if no new ledger entry for that lot/year
-  (state.duesPayments||[]).filter(p=>{
-    const janKey = getInvoiceKey(calYear,'jan');
-    const julKey = getInvoiceKey(calYear,'jul');
-    const isJan = p.year===janKey.fiscalYear && p.period===janKey.half;
-    const isJul = p.year===julKey.fiscalYear && p.period===julKey.half;
-    return (isJan||isJul) && (p.status==='paid'||p.status==='partial');
-  }).forEach(p=>{
-    const hasNew = (state.lotPayments||[]).some(lp=>lp.lotId===p.lotId&&lp.calYear===calYear);
-    if (!hasNew) {
-      const lot = state.lotRoster.find(l=>l.id===p.lotId)||{owner:''};
-      const janKey = getInvoiceKey(calYear,'jan');
-      const isJan = p.year===janKey.fiscalYear && p.period===janKey.half;
-      allPmts.push({
-        id:p.lotId+'_'+p.period, lotId:p.lotId,
-        date:p.date||'', amount:p.amount||half,
-        invoiceLabel: isJan ? `Jan ${calYear} (H2 ${calYear-1})`:`Jul ${calYear} (H1 ${calYear})`,
-        notes:p.notes||'', owner:lot.owner, src:'legacy'
-      });
-    }
-  });
-
-  allPmts.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(a.lotId-b.lotId));
-
-  if (!allPmts.length) {
+  if (!payments.length) {
     document.getElementById('payment-history-tbody').innerHTML =
-      '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px;">No payments recorded yet for '+calYear+'.</td></tr>';
+      `<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px;">
+        No payments recorded for ${calYear} yet.</td></tr>`;
     return;
   }
-
-  document.getElementById('payment-history-tbody').innerHTML = allPmts.map(p=>`<tr>
-    <td>${p.date||'—'}</td>
-    <td><strong>Lot ${p.lotId}</strong></td>
-    <td>${escHtml(p.owner||'')}</td>
-    <td><span style="font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;
-                     background:#dbeafe;color:#1d4ed8;">
-      ${escHtml(p.invoiceLabel||p.type||'Payment')}
-    </span></td>
-    <td style="text-align:right;font-weight:600;color:#16a34a;">${fmt(p.amount)}</td>
-    <td style="font-size:.82rem;color:#64748b;">${escHtml(p.notes||'')}</td>
-    <td>${p.src==='new'
-      ? `<button class="btn btn-ghost btn-sm" onclick="deleteLotPayment('${p.id}')"
-               style="color:#ef4444;">✕</button>`
-      : '<span style="font-size:.72rem;color:#94a3b8;">legacy</span>'}</td>
-  </tr>`).join('');
+  document.getElementById('payment-history-tbody').innerHTML = payments.map(p => {
+    const lot = state.lotRoster.find(l=>l.id===p.lotId)||{owner:''};
+    return `<tr>
+      <td>${p.date||'—'}</td>
+      <td><strong>Lot ${p.lotId}</strong></td>
+      <td>${escHtml(lot.owner||'')}</td>
+      <td style="text-align:right;font-weight:600;color:#16a34a;">${fmt(p.amount)}</td>
+      <td><span style="font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;
+                       background:#dbeafe;color:#1d4ed8;">${escHtml(p.covers||'Payment')}</span></td>
+      <td style="font-size:.82rem;color:#64748b;">${escHtml(p.notes||'')}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteLotPayment('${p.id}')"
+                  style="color:#ef4444;">✕</button></td>
+    </tr>`;
+  }).join('');
 }
 
-// ── Prior Balance inline edit ────────────────────────────────────────────────
+// ── UNIFIED PAYMENT MODAL ────────────────────────────────────────────────────
+// openPayModal(lotId, calYear, period)
+//   period = 'jan' | 'jul' | null (null = general/full payment)
+function openPayModal(lotId, calYear, period) {
+  ensureLotRoster();
+  const lot = state.lotRoster.find(l=>l.id===lotId)||{owner:''};
+  const s   = computeLotSummary(lotId, calYear);
+  const half = periodAmount();
+
+  document.getElementById('pm-lot-id').value  = lotId;
+  document.getElementById('pm-cal-year').value = calYear;
+  document.getElementById('pm-lot-display').value =
+    `Lot ${lotId}${lot.owner?' — '+lot.owner:''}`;
+
+  // Pre-fill covers based on context
+  const coversSel = document.getElementById('pm-covers');
+  if (period === 'jan') {
+    coversSel.value = 'Jan Invoice';
+    document.getElementById('pm-amount').value = half;
+  } else if (period === 'jul') {
+    coversSel.value = 'Jul Invoice';
+    document.getElementById('pm-amount').value = half;
+  } else {
+    coversSel.value = 'Full Payment';
+    document.getElementById('pm-amount').value = s.netBalance > 0 ? s.netBalance : '';
+  }
+
+  // Build balance due summary
+  const lines = [];
+  if (s.prior > 0) lines.push(`Prior arrears: ${fmt(s.prior)}`);
+  if (s.assess > 0) lines.push(`Assessments: ${fmt(s.assess)}`);
+  if (s.janStatus !== 'paid') lines.push(`Jan invoice: ${fmt(half)}`);
+  if (s.julStatus !== 'paid') lines.push(`Jul invoice: ${fmt(half)}`);
+  document.getElementById('pm-balance-breakdown').textContent =
+    lines.length ? lines.join(' · ') : 'No balance due';
+  document.getElementById('pm-net-balance').textContent =
+    s.netBalance > 0 ? `Total due: ${fmt(s.netBalance)}` :
+    s.netBalance < 0 ? `Credit: ${fmt(-s.netBalance)}` : 'Paid in full';
+  document.getElementById('pm-net-balance').style.color =
+    s.netBalance > 0 ? '#dc2626' : '#16a34a';
+
+  document.getElementById('pm-date').value  = new Date().toISOString().slice(0,10);
+  document.getElementById('pm-notes').value = '';
+  document.getElementById('pm-modal-title').textContent = `Record Payment — Lot ${lotId}`;
+  document.getElementById('pay-modal').classList.add('open');
+}
+
+function savePayment_unified() {
+  const lotId   = parseInt(document.getElementById('pm-lot-id').value);
+  const calYear = parseInt(document.getElementById('pm-cal-year').value);
+  const amount  = parseFloat(document.getElementById('pm-amount').value)||0;
+  const date    = document.getElementById('pm-date').value;
+  const covers  = document.getElementById('pm-covers').value;
+  const notes   = document.getElementById('pm-notes').value.trim();
+
+  if (!amount || !date) { alert('Please enter an amount and date.'); return; }
+  if (!state.lotPayments) state.lotPayments = [];
+
+  // Record the payment
+  state.lotPayments.push({ id: uid(), lotId, calYear, date, amount, covers, notes });
+
+  // Auto-reconcile badges based on all payments for this lot/year
+  reconcileLotStatus(lotId, calYear);
+
+  saveState();
+  closePayModal();
+  renderLotsTab();
+}
+
+function closePayModal() {
+  document.getElementById('pay-modal').classList.remove('open');
+}
+
+function deleteLotPayment(payId) {
+  if (!confirm('Delete this payment record? Badge statuses will recalculate.')) return;
+  state.lotPayments = (state.lotPayments||[]).filter(p=>p.id!==payId);
+  // Recalculate all lot statuses for the current year
+  const calYear = parseInt(document.getElementById('lots-year-sel')?.value
+                           || state.settings.fiscalYear);
+  ensureLotRoster();
+  state.lotRoster.slice(0, state.settings.lots).forEach(lot =>
+    reconcileLotStatus(lot.id, calYear)
+  );
+  saveState();
+  renderLotsTab();
+}
+
+// ── Prior balance inline edit ─────────────────────────────────────────────────
 function editPriorBalance(lotId, calYear) {
   const key = `${lotId}-${calYear}`;
   const cur = state.lotPriorBalances[key]||0;
@@ -2880,243 +2861,132 @@ function editPriorBalance(lotId, calYear) {
   saveState(); renderLotsTab();
 }
 
-// ── Record Payment Modal ─────────────────────────────────────────────────────
-function openRecordPaymentModal(lotId, calYear) {
-  ensureLotRoster();
-  const lot = state.lotRoster.find(l=>l.id===lotId)||{owner:''};
-  const s = computeLotSummary(lotId, calYear);
-  document.getElementById('rp-lot-id').value   = lotId;
-  document.getElementById('rp-year').value     = calYear;
-  document.getElementById('rp-lot-display').value =
-    `Lot ${lotId}${lot.owner?' — '+lot.owner:''}`;
-  document.getElementById('rp-balance-due').value =
-    s.netBalance>0 ? fmt(s.netBalance) : 'No balance';
-  document.getElementById('rp-amount').value   = s.netBalance>0?s.netBalance:'';
-  document.getElementById('rp-date').value     = new Date().toISOString().slice(0,10);
-  document.getElementById('rp-type').value     = 'Full Payment';
-  document.getElementById('rp-notes').value    = '';
-  document.getElementById('rp-modal-title').textContent = `Record Payment — Lot ${lotId}`;
-  document.getElementById('record-payment-modal').classList.add('open');
-}
-
-function saveRecordedPayment() {
-  const lotId   = parseInt(document.getElementById('rp-lot-id').value);
-  const calYear = parseInt(document.getElementById('rp-year').value);
-  const amount  = parseFloat(document.getElementById('rp-amount').value)||0;
-  const date    = document.getElementById('rp-date').value;
-  const type    = document.getElementById('rp-type').value;
-  const notes   = document.getElementById('rp-notes').value.trim();
-  if (!amount||!date) { alert('Please enter an amount and date.'); return; }
-  if (!state.lotPayments) state.lotPayments=[];
-
-  // Build invoice label for history display
-  const janKey = getInvoiceKey(calYear,'jan');
-  const julKey = getInvoiceKey(calYear,'jul');
-  let invLabel = type;
-  if (type==='Jan Invoice'||type==='Full Payment'||type==='Prior Arrears') {
-    invLabel = type==='Prior Arrears'
-      ? 'Prior Arrears'
-      : `${type} (Jan ${calYear} + Jul ${calYear})`;
-  }
-
-  state.lotPayments.push({
-    id: uid(), lotId, calYear, date, amount,
-    invoiceLabel: invLabel, type, notes
-  });
-
-  // Auto-mark dues status based on payment type
-  const half = periodAmount();
-  const s = computeLotSummary(lotId, calYear);
-
-  if (type==='Jan Invoice'||(type==='Full Payment'&&s.janStatus!=='paid')) {
-    const k = janKey;
-    const idx = state.duesPayments.findIndex(p=>p.lotId===lotId&&p.year===k.fiscalYear&&p.period===k.half);
-    const rec = {lotId,year:k.fiscalYear,period:k.half,status:'paid',amount:half,date,notes:type};
-    if (idx>=0) state.duesPayments[idx]=rec; else state.duesPayments.push(rec);
-  }
-  if (type==='Jul Invoice'||(type==='Full Payment'&&s.julStatus!=='paid')) {
-    const k = julKey;
-    const idx = state.duesPayments.findIndex(p=>p.lotId===lotId&&p.year===k.fiscalYear&&p.period===k.half);
-    const rec = {lotId,year:k.fiscalYear,period:k.half,status:'paid',amount:half,date,notes:type};
-    if (idx>=0) state.duesPayments[idx]=rec; else state.duesPayments.push(rec);
-  }
-
-  saveState(); closeRecordPaymentModal(); renderLotsTab();
-}
-
-function closeRecordPaymentModal() {
-  document.getElementById('record-payment-modal').classList.remove('open');
-}
-
-function deleteLotPayment(payId) {
-  if (!confirm('Delete this payment record?')) return;
-  state.lotPayments=(state.lotPayments||[]).filter(p=>p.id!==payId);
-  saveState(); renderLotsTab();
-}
-
-// ── Dues status modal (per-invoice badge click) ──────────────────────────────
-function openDuesModal(lotId, calYear, period) {
-  ensureLotRoster();
-  const lot = state.lotRoster.find(l=>l.id===lotId)||{owner:''};
-  const invKey = getInvoiceKey(calYear, period);
-  const existing = getDuesRecord(lotId, invKey.fiscalYear, invKey.half);
-  const half = periodAmount();
-  document.getElementById('pmt-lot-id').value     = lotId;
-  document.getElementById('pmt-period-id').value  = period+'|'+calYear;
-  document.getElementById('pmt-lot-display').value=
-    `Lot ${lotId}${lot.owner?' — '+lot.owner:''}`;
-  document.getElementById('pmt-period-display').value =
-    getInvoiceLabel(calYear, period);
-  document.getElementById('pmt-amount').value  = existing?.amount||half;
-  document.getElementById('pmt-date').value    = existing?.date||new Date().toISOString().slice(0,10);
-  document.getElementById('pmt-status').value  = existing?.status||'paid';
-  document.getElementById('pmt-notes').value   = existing?.notes||'';
-  document.getElementById('pmt-modal-title').textContent =
-    `Invoice Status — Lot ${lotId}`;
-  document.getElementById('payment-modal').classList.add('open');
-}
-
-function savePayment() {
-  const lotId  = parseInt(document.getElementById('pmt-lot-id').value);
-  const [period, calYearStr] = document.getElementById('pmt-period-id').value.split('|');
-  const calYear = parseInt(calYearStr||state.settings.fiscalYear);
-  const invKey = getInvoiceKey(calYear, period);
-  const rec = {
-    lotId,
-    year:   invKey.fiscalYear,
-    period: invKey.half,
-    status: document.getElementById('pmt-status').value,
-    amount: parseFloat(document.getElementById('pmt-amount').value)||0,
-    date:   document.getElementById('pmt-date').value,
-    notes:  document.getElementById('pmt-notes').value
-  };
-  const idx = state.duesPayments.findIndex(p=>
-    p.lotId===lotId&&p.year===invKey.fiscalYear&&p.period===invKey.half);
-  if (idx>=0) state.duesPayments[idx]=rec; else state.duesPayments.push(rec);
-  saveState(); closePaymentModal(); renderLotsTab();
-}
-
-function closePaymentModal() {
-  document.getElementById('payment-modal').classList.remove('open');
-}
-
-// ── Multi-select & bulk actions ───────────────────────────────────────────────
+// ── Multi-select ──────────────────────────────────────────────────────────────
 function getSelectedLotIds() {
   return Array.from(document.querySelectorAll('.lot-cb:checked'))
-    .map(cb=>parseInt(cb.dataset.lotId));
+    .map(cb => parseInt(cb.dataset.lotId));
 }
 
 function updateBulkToolbar() {
   const sel = getSelectedLotIds();
-  const toolbar = document.getElementById('dues-bulk-toolbar');
-  const countEl = document.getElementById('dues-bulk-count');
-  if (sel.length>0) {
-    toolbar.style.display='flex';
-    countEl.textContent=`${sel.length} lot${sel.length>1?'s':''} selected`;
-  } else {
-    toolbar.style.display='none';
-  }
+  const tb  = document.getElementById('dues-bulk-toolbar');
+  document.getElementById('dues-bulk-count').textContent =
+    `${sel.length} lot${sel.length>1?'s':''} selected`;
+  tb.style.display = sel.length > 0 ? 'flex' : 'none';
   const allCbs = document.querySelectorAll('.lot-cb');
   const sa = document.getElementById('select-all-cb');
   if (sa) {
-    sa.indeterminate = sel.length>0 && sel.length<allCbs.length;
-    sa.checked = sel.length>0 && sel.length===allCbs.length;
+    sa.indeterminate = sel.length > 0 && sel.length < allCbs.length;
+    sa.checked = sel.length > 0 && sel.length === allCbs.length;
   }
 }
 
 function toggleSelectAll(masterCb) {
-  document.querySelectorAll('.lot-cb').forEach(cb=>{cb.checked=masterCb.checked;});
+  document.querySelectorAll('.lot-cb').forEach(cb => { cb.checked = masterCb.checked; });
   updateBulkToolbar();
 }
 
 function clearLotSelection() {
-  document.querySelectorAll('.lot-cb').forEach(cb=>{cb.checked=false;});
-  const sa=document.getElementById('select-all-cb');
-  if (sa){sa.checked=false;sa.indeterminate=false;}
-  const tb=document.getElementById('dues-bulk-toolbar');
-  if (tb) tb.style.display='none';
+  document.querySelectorAll('.lot-cb').forEach(cb => { cb.checked = false; });
+  const sa = document.getElementById('select-all-cb');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  const tb = document.getElementById('dues-bulk-toolbar');
+  if (tb) tb.style.display = 'none';
 }
 
 function bulkMarkInvoice(status) {
-  const ids = getSelectedLotIds();
+  const ids     = getSelectedLotIds();
   if (!ids.length) return;
   ensureLotRoster();
   const calYear = parseInt(document.getElementById('lots-year-sel')?.value
-                           ||state.settings.fiscalYear);
+                           || state.settings.fiscalYear);
   const invKey  = getInvoiceKey(calYear, _invoicePeriod);
   const half    = periodAmount();
   const today   = new Date().toISOString().slice(0,10);
-  ids.forEach(lotId=>{
-    const idx = state.duesPayments.findIndex(p=>
-      p.lotId===lotId&&p.year===invKey.fiscalYear&&p.period===invKey.half);
-    const rec = {
-      lotId, year:invKey.fiscalYear, period:invKey.half,
-      status,
-      amount: status==='paid'?half:0,
-      date:   status==='paid'?today:'',
-      notes:  `Bulk ${status} — ${_invoicePeriod==='jan'?'Jan':'Jul'} ${calYear} invoice`
-    };
-    if (idx>=0) state.duesPayments[idx]=rec; else state.duesPayments.push(rec);
+
+  ids.forEach(lotId => {
+    if (status === 'paid') {
+      // Add a payment entry so history is complete
+      if (!state.lotPayments) state.lotPayments = [];
+      const covers = _invoicePeriod === 'jan'
+        ? `Jan Invoice` : `Jul Invoice`;
+      state.lotPayments.push({
+        id: uid(), lotId, calYear, date: today,
+        amount: half, covers,
+        notes: 'Bulk mark paid'
+      });
+      reconcileLotStatus(lotId, calYear);
+    } else {
+      // Remove payments for this invoice period
+      const rec = getDuesRecord(lotId, invKey.fiscalYear, invKey.half);
+      if (rec) setDuesRecord(lotId, invKey.fiscalYear, invKey.half,
+                             'unpaid', 0, '', 'manual');
+    }
   });
-  saveState(); clearLotSelection(); renderLotsTab();
+  saveState();
+  clearLotSelection();
+  renderLotsTab();
 }
 
-// ── Special Assessment Modal ─────────────────────────────────────────────────
+// ── Owner update ──────────────────────────────────────────────────────────────
+function updateLotOwner(lotId, name) {
+  ensureLotRoster();
+  const lot = state.lotRoster.find(l=>l.id===lotId);
+  if (lot) { lot.owner = name; saveState(); }
+}
+
+// ── Special Assessment Modal ──────────────────────────────────────────────────
 let _editingAssessmentId = null;
 
 function openAssessmentModal(id) {
-  _editingAssessmentId = id||null;
+  _editingAssessmentId = id || null;
   ensureLotRoster();
   const calYear = parseInt(document.getElementById('lots-year-sel')?.value
-                           ||state.settings.fiscalYear);
-  let a = null;
-  if (id) a=(state.specialAssessments||[]).find(x=>x.id===id);
+                           || state.settings.fiscalYear);
+  const a = id ? (state.specialAssessments||[]).find(x=>x.id===id) : null;
 
   document.getElementById('sa-modal-title').textContent =
-    id?'Edit Special Assessment':'New Special Assessment';
-  document.getElementById('sa-name').value  = a?a.name:'';
-  document.getElementById('sa-year').value  = a?a.calYear:calYear;
-  document.getElementById('sa-base').value  = a?(a.baseAmount||0):'';
-  document.getElementById('sa-notes').value = a?a.notes:'';
+    id ? 'Edit Special Assessment' : 'New Special Assessment';
+  document.getElementById('sa-name').value  = a ? a.name : '';
+  document.getElementById('sa-year').value  = a ? a.calYear : calYear;
+  document.getElementById('sa-base').value  = a ? (a.baseAmount||0) : '';
+  document.getElementById('sa-notes').value = a ? (a.notes||'') : '';
 
-  // Build per-lot increment inputs
-  const roster = state.lotRoster.slice(0,state.settings.lots);
+  const roster = state.lotRoster.slice(0, state.settings.lots);
   let html = `<div style="margin-bottom:8px;font-size:.8rem;color:#64748b;">
-    Leave blank or 0 for lots charged only the base amount.</div>
+    Additional charge above the base for specific lots — leave blank or 0 for base-only lots.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">`;
-  roster.forEach(lot=>{
-    const incr = a?(a.increments||{})[lot.id]||0:0;
-    html+=`<div class="field">
+  roster.forEach(lot => {
+    const incr = a ? ((a.increments||{})[lot.id]||0) : 0;
+    html += `<div class="field">
       <label>Lot ${lot.id}${lot.owner?' — '+escHtml(lot.owner.split(' ')[0]):''}
-        <span style="font-weight:400;color:#94a3b8;font-size:.68rem;"> (increment only)</span>
-      </label>
+        <span style="font-weight:400;color:#94a3b8;font-size:.68rem;"> increment</span></label>
       <input type="number" id="sa-lot-${lot.id}" min="0"
-             value="${incr||''}" placeholder="0 (base only)"
-             style="font-family:inherit;padding:7px 10px;border:1.5px solid #e2e8f0;
-                    border-radius:7px;font-size:.88rem;">
+             value="${incr||''}" placeholder="0"
+             style="font-family:inherit;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.88rem;">
     </div>`;
   });
-  html+='</div>';
+  html += '</div>';
   document.getElementById('sa-lot-amounts').innerHTML = html;
   document.getElementById('sa-modal').classList.add('open');
 }
 
 function saveAssessment() {
   ensureLotRoster();
-  const name  = document.getElementById('sa-name').value.trim();
+  const name    = document.getElementById('sa-name').value.trim();
   const calYear = parseInt(document.getElementById('sa-year').value);
-  const base  = parseFloat(document.getElementById('sa-base').value)||0;
-  const notes = document.getElementById('sa-notes').value.trim();
+  const base    = parseFloat(document.getElementById('sa-base').value)||0;
+  const notes   = document.getElementById('sa-notes').value.trim();
   if (!name) { alert('Assessment name required.'); return; }
-  const increments={};
-  state.lotRoster.slice(0,state.settings.lots).forEach(lot=>{
-    const v=parseFloat(document.getElementById('sa-lot-'+lot.id)?.value)||0;
-    if (v>0) increments[lot.id]=v;
+  const increments = {};
+  state.lotRoster.slice(0, state.settings.lots).forEach(lot => {
+    const v = parseFloat(document.getElementById('sa-lot-'+lot.id)?.value)||0;
+    if (v > 0) increments[lot.id] = v;
   });
-  if (!state.specialAssessments) state.specialAssessments=[];
+  if (!state.specialAssessments) state.specialAssessments = [];
   if (_editingAssessmentId) {
-    const idx=state.specialAssessments.findIndex(a=>a.id===_editingAssessmentId);
-    if (idx>=0) state.specialAssessments[idx]={
+    const idx = state.specialAssessments.findIndex(a=>a.id===_editingAssessmentId);
+    if (idx>=0) state.specialAssessments[idx] = {
       ...state.specialAssessments[idx], name, calYear, baseAmount:base, notes, increments
     };
   } else {
@@ -3129,38 +2999,139 @@ function saveAssessment() {
 
 function deleteAssessment(id) {
   if (!confirm('Remove this assessment?')) return;
-  const a=(state.specialAssessments||[]).find(x=>x.id===id);
-  if (a){a.deleted=true; saveState(); renderLotsTab();}
+  const a = (state.specialAssessments||[]).find(x=>x.id===id);
+  if (a) { a.deleted = true; saveState(); renderLotsTab(); }
 }
 
 function closeAssessmentModal() {
   document.getElementById('sa-modal').classList.remove('open');
 }
 
-// ── Owner update ─────────────────────────────────────────────────────────────
-function updateLotOwner(lotId, name) {
+// ── Year-end rollover ────────────────────────────────────────────────────────
+function openRolloverModal() {
   ensureLotRoster();
-  const lot=state.lotRoster.find(l=>l.id===lotId);
-  if (lot){lot.owner=name; saveState();}
+  const calYear  = parseInt(document.getElementById('lots-year-sel')?.value
+                            || state.settings.fiscalYear);
+  const nextYear = calYear + 1;
+  document.getElementById('rollover-modal-title').textContent =
+    `Roll Over Balances — ${calYear} → ${nextYear}`;
+
+  const roster = state.lotRoster.slice(0, state.settings.lots);
+  const rows   = roster.map(lot => {
+    const s = computeLotSummary(lot.id, calYear);
+    return { lot, balance: s.netBalance };
+  }).filter(r => r.balance !== 0); // skip fully-paid lots
+
+  if (!rows.length) {
+    document.getElementById('rollover-table-wrap').innerHTML =
+      '<p style="padding:20px;text-align:center;color:#16a34a;font-weight:600;">' +
+      '✓ All lots are fully paid — no balances to carry forward.</p>';
+    document.getElementById('rollover-summary').textContent = '';
+  } else {
+    const owing   = rows.filter(r => r.balance > 0).length;
+    const credits = rows.filter(r => r.balance < 0).length;
+    document.getElementById('rollover-summary').innerHTML =
+      `${rows.length} lot(s) with non-zero balance · ` +
+      `<span style="color:#dc2626;">${owing} owing</span> · ` +
+      `<span style="color:#2563eb;">${credits} credit(s)</span> · ` +
+      `Amounts are editable before confirming.`;
+
+    let html = `<table class="dues-table">
+      <thead><tr>
+        <th>Lot #</th><th>Owner</th>
+        <th style="text-align:right">${calYear} Net Balance</th>
+        <th style="text-align:right">Carry to ${nextYear} Prior Balance ($)</th>
+        <th style="text-align:center">Include?</th>
+      </tr></thead><tbody>`;
+    rows.forEach(({ lot, balance }) => {
+      const color = balance > 0 ? '#dc2626' : '#2563eb';
+      const label = balance > 0 ? fmt(balance) + ' owing'
+                                : '(' + fmt(-balance) + ') credit';
+      html += `<tr>
+        <td><strong>Lot ${lot.id}</strong></td>
+        <td>${escHtml(lot.owner||'—')}</td>
+        <td style="text-align:right;font-weight:600;color:${color};">${label}</td>
+        <td style="text-align:right;">
+          <input type="number" id="ro-amt-${lot.id}" value="${balance}" step="0.01"
+                 style="width:110px;padding:5px 8px;border:1.5px solid #e2e8f0;
+                        border-radius:6px;font-size:.88rem;text-align:right;">
+        </td>
+        <td style="text-align:center;">
+          <input type="checkbox" id="ro-inc-${lot.id}" checked
+                 class="cleared-cb" style="width:16px;height:16px;">
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('rollover-table-wrap').innerHTML = html;
+  }
+  // Store current year for use in confirmRollover
+  document.getElementById('rollover-modal').dataset.calYear = calYear;
+  document.getElementById('rollover-modal').classList.add('open');
 }
 
-// ── CSV export ───────────────────────────────────────────────────────────────
+function confirmRollover() {
+  ensureLotRoster();
+  const calYear  = parseInt(document.getElementById('rollover-modal').dataset.calYear);
+  const nextYear = calYear + 1;
+  const roster   = state.lotRoster.slice(0, state.settings.lots);
+
+  let count = 0;
+  roster.forEach(lot => {
+    const incEl = document.getElementById(`ro-inc-${lot.id}`);
+    const amtEl = document.getElementById(`ro-amt-${lot.id}`);
+    if (!incEl || !amtEl) return; // lot had zero balance, skipped
+    if (!incEl.checked) return;   // user unchecked it
+    const amt = parseFloat(amtEl.value) || 0;
+    if (amt === 0) return;
+    const key = `${lot.id}-${nextYear}`;
+    state.lotPriorBalances[key] = amt;
+    count++;
+  });
+
+  saveState();
+  closeRolloverModal();
+
+  // Switch the year selector to next year and re-render
+  const sel = document.getElementById('lots-year-sel');
+  if (sel) {
+    sel.value = String(nextYear);
+    renderLotsTab();
+  }
+
+  alert(`Done — ${count} lot(s) carried forward to ${nextYear}. ` +
+        `You are now viewing the ${nextYear} ledger.`);
+}
+
+function closeRolloverModal() {
+  document.getElementById('rollover-modal').classList.remove('open');
+}
+
+// ── Show/hide rollover button based on selected year ─────────────────────────
+function updateRolloverButton(calYear) {
+  const btn = document.getElementById('rollover-btn');
+  if (!btn) return;
+  // Show only for the current fiscal year or past years
+  const fy = state.settings.fiscalYear;
+  btn.style.display = (calYear <= fy) ? '' : 'none';
+}
+
+// ── CSV export ────────────────────────────────────────────────────────────────
 function exportLotsCSV() {
   ensureLotRoster();
   const calYear = parseInt(document.getElementById('lots-year-sel')?.value
-                           ||state.settings.fiscalYear);
+                           || state.settings.fiscalYear);
   const half = periodAmount();
-  const rows=[
-    [`Hidden Creek HOA — Lot Ledger`,`Calendar Year ${calYear}`],[],
+  const rows = [
+    [`Hidden Creek HOA — Lot Ledger`, `Calendar Year ${calYear}`], [],
     ['Lot #','Owner','Prior Balance','Assessments',
-     `Jan ${calYear} Invoice`,`Jul ${calYear} Invoice`,
+     `Jan ${calYear} Status`,`Jul ${calYear} Status`,
      'Total Charged','Total Paid','Net Balance']
   ];
-  state.lotRoster.slice(0,state.settings.lots).forEach(lot=>{
-    const s=computeLotSummary(lot.id, calYear);
-    rows.push([`Lot ${lot.id}`,lot.owner||'',
-      s.prior||0, s.assessments||0,
-      s.janStatus, s.julStatus,
+  state.lotRoster.slice(0, state.settings.lots).forEach(lot => {
+    const s = computeLotSummary(lot.id, calYear);
+    rows.push([`Lot ${lot.id}`, lot.owner||'',
+      s.prior||0, s.assess||0, s.janStatus, s.julStatus,
       s.totalCharged, s.totalPaid, s.netBalance]);
   });
   downloadCSV(`HiddenCreek_LotLedger_${calYear}.csv`, rows);
@@ -3168,17 +3139,19 @@ function exportLotsCSV() {
 
 // ── Impact fee functions ──────────────────────────────────────────────────────
 function renderImpactTable() {
-  const records=(state.impactFeeRecords||[]).slice()
-    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const projects=(state.capitalProjects||[]);
-  let rows='';
+  const records  = (state.impactFeeRecords||[]).slice()
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const projects = state.capitalProjects||[];
+  let rows = '';
   if (!records.length) {
-    rows='<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No impact fees recorded yet.</td></tr>';
+    rows = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">
+      No impact fees recorded yet.</td></tr>`;
   } else {
-    records.forEach((r,i)=>{
-      const proj=projects.find(p=>p.id===r.projectId);
-      rows+=`<tr>
-        <td>${r.date||'—'}</td><td>Lot ${escHtml(r.lot||'—')}</td>
+    records.forEach((r,i) => {
+      const proj = projects.find(p=>p.id===r.projectId);
+      rows += `<tr>
+        <td>${r.date||'—'}</td>
+        <td>Lot ${escHtml(r.lot||'—')}</td>
         <td>${escHtml(r.owner||'—')}</td>
         <td>${escHtml(proj?.name||r.projectId||'—')}</td>
         <td style="text-align:right">${r.sqft?r.sqft.toLocaleString():'—'}</td>
@@ -3189,24 +3162,24 @@ function renderImpactTable() {
       </tr>`;
     });
   }
-  document.getElementById('impact-tbody').innerHTML=rows;
+  document.getElementById('impact-tbody').innerHTML = rows;
 }
 
 function openImpactModal(idx) {
-  const projects=state.capitalProjects||[];
-  const projSel=document.getElementById('imp-project');
-  projSel.innerHTML='<option value="">— No linked project —</option>'+
+  const projects = state.capitalProjects||[];
+  const projSel  = document.getElementById('imp-project');
+  projSel.innerHTML = '<option value="">— No linked project —</option>' +
     projects.map(p=>`<option value="${p.id}">${escHtml(p.name)} (${p.year})</option>`).join('');
-  if (idx!==undefined) {
-    const r=state.impactFeeRecords[idx];
-    document.getElementById('imp-id').value=idx;
-    document.getElementById('imp-date').value=r.date||'';
-    document.getElementById('imp-lot').value=r.lot||'';
-    document.getElementById('imp-owner').value=r.owner||'';
-    document.getElementById('imp-sqft').value=r.sqft||'';
-    document.getElementById('imp-amount').value=r.amount||'';
+  if (idx !== undefined) {
+    const r = state.impactFeeRecords[idx];
+    document.getElementById('imp-id').value    = idx;
+    document.getElementById('imp-date').value  = r.date||'';
+    document.getElementById('imp-lot').value   = r.lot||'';
+    document.getElementById('imp-owner').value = r.owner||'';
+    document.getElementById('imp-sqft').value  = r.sqft||'';
+    document.getElementById('imp-amount').value= r.amount||'';
     document.getElementById('imp-project').value=r.projectId||'';
-    document.getElementById('imp-notes').value=r.notes||'';
+    document.getElementById('imp-notes').value = r.notes||'';
     document.getElementById('impact-modal-title').textContent='Edit Impact Fee';
   } else {
     document.getElementById('imp-id').value='';
@@ -3220,15 +3193,15 @@ function openImpactModal(idx) {
 }
 
 function saveImpactFee() {
-  const idxVal=document.getElementById('imp-id').value;
-  const rec={
-    date:document.getElementById('imp-date').value,
-    lot:document.getElementById('imp-lot').value.trim(),
-    owner:document.getElementById('imp-owner').value.trim(),
-    sqft:parseFloat(document.getElementById('imp-sqft').value)||0,
-    amount:parseFloat(document.getElementById('imp-amount').value)||0,
-    projectId:document.getElementById('imp-project').value,
-    notes:document.getElementById('imp-notes').value.trim()
+  const idxVal = document.getElementById('imp-id').value;
+  const rec = {
+    date:      document.getElementById('imp-date').value,
+    lot:       document.getElementById('imp-lot').value.trim(),
+    owner:     document.getElementById('imp-owner').value.trim(),
+    sqft:      parseFloat(document.getElementById('imp-sqft').value)||0,
+    amount:    parseFloat(document.getElementById('imp-amount').value)||0,
+    projectId: document.getElementById('imp-project').value,
+    notes:     document.getElementById('imp-notes').value.trim()
   };
   if (!state.impactFeeRecords) state.impactFeeRecords=[];
   if (idxVal!=='') state.impactFeeRecords[parseInt(idxVal)]=rec;
