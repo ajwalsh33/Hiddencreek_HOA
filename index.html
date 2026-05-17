@@ -547,8 +547,8 @@ input,select,textarea{font-family:inherit;}
       <div class="card-title">10-Year Reserve Trajectory</div>
       <div style="margin-bottom:12px;">
         <span class="legend-pill"><span class="legend-dot" style="background:#3b82f6"></span>Reserve Balance</span>
-        <span class="legend-pill"><span style="border-top:3px dashed #ef4444;display:inline-block;width:20px;margin-right:4px;vertical-align:middle;"></span>Minimum Target</span>
-        <span class="legend-pill"><span class="legend-dot" style="background:#f59e0b"></span>Capital project years</span>
+        <span class="legend-pill"><span style="border-top:3px dashed #ef4444;display:inline-block;width:20px;margin-right:4px;vertical-align:middle;"></span>Dynamic Target (opex + capital buffer)</span>
+        <span class="legend-pill"><span style="border-top:2px dashed #f59e0b;display:inline-block;width:20px;margin-right:4px;vertical-align:middle;"></span>Opex Floor Only</span>
       </div>
       <div class="chart-wrap" style="height:300px;"><canvas id="forecast-chart"></canvas></div>
     </div>
@@ -564,9 +564,12 @@ input,select,textarea{font-family:inherit;}
       <div>
         <div class="control-panel">
           <div class="card-title" style="margin-bottom:16px;">What-If Controls</div>
-          <div class="control-label">Annual dues per lot</div>
+          <div class="control-label">Annual dues per lot — effective 2027</div>
           <div class="scenario-amount-display" id="sc-dues-display">$1,800</div>
           <div class="scenario-monthly" id="sc-monthly-display">$150 / month per lot</div>
+          <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;padding:4px 8px;background:#f1f5f9;border-radius:4px;">
+            ℹ 2026 remains at $${state.settings.assessmentPerLot.toLocaleString()}/lot as planned. Scenario dues take effect 2027.
+          </div>
           <input type="range" class="big-slider" id="sc-dues-slider" min="1500" max="2500" step="50" value="1800" oninput="updateScenario()">
           <div class="slider-ticks"><span>$1,500</span><span>$2,000</span><span>$2,500</span></div>
           <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
@@ -712,7 +715,10 @@ input,select,textarea{font-family:inherit;}
         </div>
         <div class="right">
           <button class="btn btn-ghost btn-sm" onclick="exportHistoryCSV()">⬇ CSV</button>
-          <label class="btn btn-ghost btn-sm" style="cursor:pointer">📂 Import CSV<input type="file" accept=".csv" style="display:none" onchange="importHistoryCSV(event)"></label>
+          <button class="btn btn-blue btn-sm" onclick="recalcFromVendorLedger()"
+                  title="Aggregate vendor ledger entries by year and category to update historical totals">
+            🔄 Recalc from Vendor Ledger
+          </button>
         </div>
       </div>
       <div id="history-table-wrap" style="overflow-x:auto;"></div>
@@ -852,9 +858,24 @@ input,select,textarea{font-family:inherit;}
         <input type="number" id="mp-infl" step="0.1" placeholder="Leave blank = use default">
         <span class="hint">Leave blank to use the default capital inflation rate</span>
       </div>
+      <div class="field">
+        <label>Funding Source</label>
+        <select id="mp-funding">
+          <option value="reserves">Fully from Reserves</option>
+          <option value="assessment">Fully via Special Assessment</option>
+          <option value="split">Split — Reserves + Special Assessment</option>
+        </select>
+        <span class="hint">Determines how much draws from the reserve fund vs. a one-time homeowner assessment.</span>
+      </div>
+      <div class="field" id="mp-reserve-pct-wrap">
+        <label>Reserve-Funded Portion (%)</label>
+        <input type="number" id="mp-reserve-pct" min="0" max="100" value="100"
+               placeholder="e.g. 50 for a 50/50 split">
+        <span class="hint">Only the reserve-funded % draws from reserves. Remainder assumed via special assessment.</span>
+      </div>
       <div class="field" style="grid-column:1/-1">
         <label>Notes &amp; Assumptions</label>
-        <textarea id="mp-notes" rows="5"
+        <textarea id="mp-notes" rows="4"
           placeholder="Document your assumptions here — cost source, contractor quotes, condition assessment, timing rationale, links to bids, board discussion context, etc."></textarea>
       </div>
     </div>
@@ -1094,7 +1115,7 @@ input,select,textarea{font-family:inherit;}
 // ═══════════════════════════════════════════════════
 // 1. DEFAULT STATE
 // ═══════════════════════════════════════════════════
-const DEFAULT_STATE = {"settings":{"hoaName":"Hidden Creek HOA","fiscalYear":2026,"lots":29,"assessmentPerLot":1800,"startingReserve":40600,"minReserve":30000,"interestRate":4,"opexInflation":3,"capexInflation":3,"impactFees":2000,"impactFeeYear":2026},"budget":{"categories":[{"id":"admin","name":"Administrative","items":[{"id":"a1","name":"Bank service charges","budget":30,"actual":0,"notes":""},{"id":"a2","name":"PO Box / postage","budget":72,"actual":0,"notes":""},{"id":"idmn1yjetof1jg","name":"Hidden Creek domain","budget":100,"actual":0,"notes":""}]},{"id":"grounds","name":"Grounds & Roads","items":[{"id":"g1","name":"Landscaping / mowing","budget":6000,"actual":0,"notes":""},{"id":"g2","name":"Dust control (road)","budget":1200,"actual":0,"notes":""},{"id":"g3","name":"Road maintenance (potholes/spot repairs)","budget":5000,"actual":0,"notes":""},{"id":"g4","name":"Snow plowing","budget":1800,"actual":0,"notes":""},{"id":"g5","name":"Tree removal","budget":4000,"actual":0,"notes":""}]},{"id":"insurance","name":"Insurance & Professional","items":[{"id":"i1","name":"Insurance","budget":1800,"actual":0,"notes":""},{"id":"i2","name":"Professional fees (legal/accounting)","budget":500,"actual":0,"notes":""}]},{"id":"pool","name":"Pool & Amenities","items":[{"id":"p1","name":"Pool service / maintenance contract","budget":9000,"actual":0,"notes":""},{"id":"p2","name":"Pool mechanicals (operating)","budget":2000,"actual":0,"notes":""},{"id":"p3","name":"Pool supplies & chemicals","budget":700,"actual":0,"notes":""},{"id":"p4","name":"Pool licenses & inspections","budget":325,"actual":0,"notes":""},{"id":"p5","name":"Pest service (pool area)","budget":230,"actual":0,"notes":""},{"id":"p6","name":"Hardscape maintenance","budget":500,"actual":0,"notes":""},{"id":"p7","name":"Weekly patio / restroom cleaning","budget":1700,"actual":0,"notes":""}]},{"id":"utilities","name":"Utilities","items":[{"id":"u1","name":"Electric / utilities","budget":2400,"actual":0,"notes":""},{"id":"u2","name":"Telephone / internet","budget":1000,"actual":0,"notes":""}]}]},"capitalProjects":[{"id":"cp1","name":"Neighborhood sign / entry","category":"Grounds & Roads","year":2026,"baseCost":10000,"inflOverride":null,"notes":"Board priority; base year — no inflation","status":"approved"},{"id":"cp2","name":"Neighborhood walking paths","category":"Grounds & Roads","year":2027,"baseCost":15000,"inflOverride":null,"notes":"Placeholder — need contractor estimate","status":"planned"},{"id":"cp3","name":"Pool pump replacement","category":"Pool & Amenities","year":2030,"baseCost":5000,"inflOverride":null,"notes":"Cost estimate; replace as needed","status":"planned"},{"id":"cp4","name":"Pool liner replacement","category":"Pool & Amenities","year":2031,"baseCost":9500,"inflOverride":null,"notes":"Installed 2021 — assume 10-yr life","status":"planned"},{"id":"cp5","name":"Pool heater replacement","category":"Pool & Amenities","year":2031,"baseCost":4500,"inflOverride":null,"notes":"Installed 2021 — assume 10-yr life","status":"planned"},{"id":"cp6","name":"Pool cover (winter)","category":"Pool & Amenities","year":2032,"baseCost":4500,"inflOverride":null,"notes":"Installed 2022; 10-yr life","status":"planned"},{"id":"cp7","name":"Road re-grade & cap","category":"Grounds & Roads","year":2033,"baseCost":75000,"inflOverride":null,"notes":"Next major road project — $75k base; timing TBD","status":"planned"},{"id":"cp8","name":"Pool filter replacement","category":"Pool & Amenities","year":2034,"baseCost":4000,"inflOverride":null,"notes":"Replaced 2024 — 10-yr life","status":"planned"},{"id":"cp9","name":"Pool mechanicals reserve","category":"Pool & Amenities","year":2035,"baseCost":5000,"inflOverride":null,"notes":"Placeholder for misc pool capital","status":"planned"}],"lotRoster":[{"id":1,"owner":"","address":"Lot 1"},{"id":2,"owner":"","address":"Lot 2"},{"id":3,"owner":"","address":"Lot 3"},{"id":4,"owner":"","address":"Lot 4"},{"id":5,"owner":"","address":"Lot 5"},{"id":6,"owner":"","address":"Lot 6"},{"id":7,"owner":"","address":"Lot 7"},{"id":8,"owner":"","address":"Lot 8"},{"id":9,"owner":"","address":"Lot 9"},{"id":10,"owner":"","address":"Lot 10"},{"id":11,"owner":"","address":"Lot 11"},{"id":12,"owner":"","address":"Lot 12"},{"id":13,"owner":"","address":"Lot 13"},{"id":14,"owner":"","address":"Lot 14"},{"id":15,"owner":"","address":"Lot 15"},{"id":16,"owner":"","address":"Lot 16"},{"id":17,"owner":"","address":"Lot 17"},{"id":18,"owner":"","address":"Lot 18"},{"id":19,"owner":"","address":"Lot 19"},{"id":20,"owner":"","address":"Lot 20"},{"id":21,"owner":"","address":"Lot 21"},{"id":22,"owner":"","address":"Lot 22"},{"id":23,"owner":"","address":"Lot 23"},{"id":24,"owner":"","address":"Lot 24"},{"id":25,"owner":"","address":"Lot 25"},{"id":26,"owner":"","address":"Lot 26"},{"id":27,"owner":"","address":"Lot 27"},{"id":28,"owner":"","address":"Lot 28"},{"id":29,"owner":"","address":"Lot 29"}],"duesPayments":[{"lotId":1,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":2,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":3,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":4,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":5,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":6,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":7,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":8,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":9,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":10,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":11,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":12,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":13,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":14,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":15,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":16,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":17,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":18,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":19,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":20,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":21,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":22,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":23,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":24,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":25,"year":2026,"period":"H1","status":"paid","amount":900,"date":"2026-04-15","notes":"Paid via $7,025 lump sum — arrears + current dues"},{"lotId":26,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":27,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":28,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":29,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""}],"impactFeeRecords":[],"bankEntries":[],
+const DEFAULT_STATE = {"settings":{"hoaName":"Hidden Creek HOA","fiscalYear":2026,"lots":29,"assessmentPerLot":1800,"startingReserve":40600,"capLookAhead":10,"interestRate":4,"opexInflation":3,"capexInflation":3,"impactFees":2000,"impactFeeYear":2026},"budget":{"categories":[{"id":"admin","name":"Administrative","items":[{"id":"a1","name":"Bank service charges","budget":30,"actual":0,"notes":""},{"id":"a2","name":"PO Box / postage","budget":72,"actual":0,"notes":""},{"id":"idmn1yjetof1jg","name":"Hidden Creek domain","budget":100,"actual":0,"notes":""}]},{"id":"grounds","name":"Grounds & Roads","items":[{"id":"g1","name":"Landscaping / mowing","budget":6000,"actual":0,"notes":""},{"id":"g2","name":"Dust control (road)","budget":1200,"actual":0,"notes":""},{"id":"g3","name":"Road maintenance (potholes/spot repairs)","budget":5000,"actual":0,"notes":""},{"id":"g4","name":"Snow plowing","budget":1800,"actual":0,"notes":""},{"id":"g5","name":"Tree removal","budget":4000,"actual":0,"notes":""}]},{"id":"insurance","name":"Insurance & Professional","items":[{"id":"i1","name":"Insurance","budget":1800,"actual":0,"notes":""},{"id":"i2","name":"Professional fees (legal/accounting)","budget":500,"actual":0,"notes":""}]},{"id":"pool","name":"Pool & Amenities","items":[{"id":"p1","name":"Pool service / maintenance contract","budget":9000,"actual":0,"notes":""},{"id":"p2","name":"Pool mechanicals (operating)","budget":2000,"actual":0,"notes":""},{"id":"p3","name":"Pool supplies & chemicals","budget":700,"actual":0,"notes":""},{"id":"p4","name":"Pool licenses & inspections","budget":325,"actual":0,"notes":""},{"id":"p5","name":"Pest service (pool area)","budget":230,"actual":0,"notes":""},{"id":"p6","name":"Hardscape maintenance","budget":500,"actual":0,"notes":""},{"id":"p7","name":"Weekly patio / restroom cleaning","budget":1700,"actual":0,"notes":""}]},{"id":"utilities","name":"Utilities","items":[{"id":"u1","name":"Electric / utilities","budget":2400,"actual":0,"notes":""},{"id":"u2","name":"Telephone / internet","budget":1000,"actual":0,"notes":""}]}]},"capitalProjects":[{"id":"cp1","name":"Neighborhood sign / entry","category":"Grounds & Roads","year":2026,"baseCost":10000,"inflOverride":null,"notes":"Board priority; base year — no inflation","status":"approved","fundingSource":"reserves","reservePct":100},{"id":"cp2","name":"Neighborhood walking paths","category":"Grounds & Roads","year":2027,"baseCost":15000,"inflOverride":null,"notes":"Placeholder — need contractor estimate","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp3","name":"Pool pump replacement","category":"Pool & Amenities","year":2030,"baseCost":5000,"inflOverride":null,"notes":"Cost estimate; replace as needed","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp4","name":"Pool liner replacement","category":"Pool & Amenities","year":2031,"baseCost":9500,"inflOverride":null,"notes":"Installed 2021 — assume 10-yr life","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp5","name":"Pool heater replacement","category":"Pool & Amenities","year":2031,"baseCost":4500,"inflOverride":null,"notes":"Installed 2021 — assume 10-yr life","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp6","name":"Pool cover (winter)","category":"Pool & Amenities","year":2032,"baseCost":4500,"inflOverride":null,"notes":"Installed 2022; 10-yr life","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp7","name":"Road re-grade & cap","category":"Grounds & Roads","year":2033,"baseCost":75000,"inflOverride":null,"notes":"Next major road project — $75k base; timing TBD","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp8","name":"Pool filter replacement","category":"Pool & Amenities","year":2034,"baseCost":4000,"inflOverride":null,"notes":"Replaced 2024 — 10-yr life","status":"planned","fundingSource":"reserves","reservePct":100},{"id":"cp9","name":"Pool mechanicals reserve","category":"Pool & Amenities","year":2035,"baseCost":5000,"inflOverride":null,"notes":"Placeholder for misc pool capital","status":"planned","fundingSource":"reserves","reservePct":100}],"lotRoster":[{"id":1,"owner":"","address":"Lot 1"},{"id":2,"owner":"","address":"Lot 2"},{"id":3,"owner":"","address":"Lot 3"},{"id":4,"owner":"","address":"Lot 4"},{"id":5,"owner":"","address":"Lot 5"},{"id":6,"owner":"","address":"Lot 6"},{"id":7,"owner":"","address":"Lot 7"},{"id":8,"owner":"","address":"Lot 8"},{"id":9,"owner":"","address":"Lot 9"},{"id":10,"owner":"","address":"Lot 10"},{"id":11,"owner":"","address":"Lot 11"},{"id":12,"owner":"","address":"Lot 12"},{"id":13,"owner":"","address":"Lot 13"},{"id":14,"owner":"","address":"Lot 14"},{"id":15,"owner":"","address":"Lot 15"},{"id":16,"owner":"","address":"Lot 16"},{"id":17,"owner":"","address":"Lot 17"},{"id":18,"owner":"","address":"Lot 18"},{"id":19,"owner":"","address":"Lot 19"},{"id":20,"owner":"","address":"Lot 20"},{"id":21,"owner":"","address":"Lot 21"},{"id":22,"owner":"","address":"Lot 22"},{"id":23,"owner":"","address":"Lot 23"},{"id":24,"owner":"","address":"Lot 24"},{"id":25,"owner":"","address":"Lot 25"},{"id":26,"owner":"","address":"Lot 26"},{"id":27,"owner":"","address":"Lot 27"},{"id":28,"owner":"","address":"Lot 28"},{"id":29,"owner":"","address":"Lot 29"}],"duesPayments":[{"lotId":1,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":2,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":3,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":4,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":5,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":6,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":7,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":8,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":9,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":10,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":11,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":12,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":13,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":14,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":15,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":16,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":17,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":18,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":19,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":20,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":21,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":22,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":23,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":24,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":25,"year":2026,"period":"H1","status":"paid","amount":900,"date":"2026-04-15","notes":"Paid via $7,025 lump sum — arrears + current dues"},{"lotId":26,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":27,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":28,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""},{"lotId":29,"year":2026,"period":"H1","status":"unpaid","amount":0,"date":"","notes":""}],"impactFeeRecords":[],"bankEntries":[],
 "lotPriorBalances":{"25-2026":6125},"specialAssessments":[],"otherRevenue":[{"id":"or_lot25_arrears","fiscalYear":2026,"category":"Arrears Collection","description":"Lot 25 — prior year arrears collection (paid in full April 2026)","budgeted":0,"amount":6125,"passThrough":false,"notes":"$7,025 total received: $6,125 arrears + $900 H1 2026 dues. Lot now current.","deleted":false}],"lotPayments":[{"id":"lot25_2026_pay","lotId":25,"calYear":2026,"date":"2026-04-15","amount":7025,"invoiceLabel":"Full Payment (Jan 2026 + Jul 2026)","type":"Full Payment","notes":"Payment in full — $6,125 prior arrears + $900 H1 2026 dues. Previously delinquent, now current."}],"budgetNotes":["Tree removal - anticipating removal of Sinai tree and other cleanup identified","Pool - hardscape & maintenance $$ to include flowers (~ $300) and furniture / umbrellas","Still need to factor $$ for surveillance camera","NOTE - have not budgeted for leak repair"],"historicalData":{"years":[2018,2019,2020,2021,2022,2023,2024,2025],"categories":[{"id":"admin","name":"Administrative","totals":[30,93,56,81,116,68,98,72],"avg8":77,"items":[{"name":"Bank service charges","values":[30,15,0,25,54,0,26,0],"avg8":30},{"name":"PO Box / postage","values":[0,78,56,56,62,68,72,72],"avg8":66}]},{"id":"grounds","name":"Grounds & Roads","totals":[4670,4603,6075,8765,16676,8175,8025,7921],"avg8":8114,"items":[{"name":"Landscaping / mowing","values":[900,1226,1505,3395,4030,2865,4245,5565],"avg8":2966},{"name":"Dust control (road)","values":[685,765,835,728,1002,0,1130,1156],"avg8":900},{"name":"Road maintenance (potholes/spot repairs)","values":[900,1852,1625,3467,7944,4760,1650,0],"avg8":3171},{"name":"Snow plowing","values":[900,760,510,1070,1800,350,1000,1200],"avg8":949},{"name":"Tree removal","values":[1285,0,1600,1850,1900,200,0,0],"avg8":1367}]},{"id":"insurance","name":"Insurance & Professional","totals":[1781,1722,1634,1559,1597,1560,1778,1762],"avg8":1674,"items":[{"name":"Insurance","values":[1406,1307,1544,1459,1497,1560,1778,1712],"avg8":1533},{"name":"Professional fees","values":[375,415,90,100,100,0,0,50],"avg8":188}]},{"id":"pool","name":"Pool & Amenities","totals":[9387,8331,8444,13795,11715,8147,13638,11050],"avg8":10563,"items":[{"name":"Pool service / maintenance contract","values":[9015,7435,8107,8295,10515,7205,8600,8800],"avg8":8496},{"name":"Pool supplies & chemicals","values":[372,392,262,508,353,0,891,671],"avg8":493},{"name":"Pool licenses & inspections","values":[0,284,0,220,70,81,81,316],"avg8":175},{"name":"Pool mechanicals (operating)","values":[0,0,0,0,0,0,4066,1033],"avg8":2550},{"name":"Pest service (pool area)","values":[0,220,75,150,75,150,0,230],"avg8":150},{"name":"Hardscape maintenance","values":[0,0,0,4622,702,711,0,0],"avg8":2012}]},{"id":"utilities","name":"Utilities","totals":[3062,3008,3812,3631,3749,3182,3817,3167],"avg8":3428,"items":[{"name":"Electric / utilities","values":[2084,2027,2468,2329,2955,2352,2403,2294],"avg8":2364},{"name":"Telephone / internet","values":[978,981,1344,1302,793,830,1414,873],"avg8":1064}]}],"grandTotals":[18930,17757,20021,27831,33853,21132,27356,23972],"grandAvg8":23856,"capitalEvents":[{"year":2020,"project":"Road re-grade (one-time)","amount":28675,"category":"Grounds & Roads","notes":"50% funded by special assessment"},{"year":2021,"project":"Pool liner","amount":9500,"category":"Pool & Amenities","notes":"Installed 2021"},{"year":2021,"project":"Pool heater","amount":4500,"category":"Pool & Amenities","notes":"Installed 2021"},{"year":2021,"project":"Pool driveway upgrade","amount":1745,"category":"Grounds & Roads","notes":"Stone borders"},{"year":2022,"project":"Pool cover","amount":4310,"category":"Pool & Amenities","notes":"Installed 2022"},{"year":2023,"project":"Road survey (Merritt)","amount":5200,"category":"Grounds & Roads","notes":"Engineering/survey"},{"year":2024,"project":"Road survey (Merritt)","amount":6750,"category":"Grounds & Roads","notes":"Engineering/survey"},{"year":2025,"project":"Road re-grade (Hollerbach)","amount":191735,"category":"Grounds & Roads","notes":"Major road project; partially reserve-funded"}]},"vendorLedger":[{"year":2018,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":30,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Inserv","description":"Dust control Road","amount":684.9,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":900,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":900,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":900,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1285,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1405.53,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":375,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":9015,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":371.57,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":977.67,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2018,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2084.38,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":15,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":78,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Inserv","description":"Dust control Road","amount":765,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1226,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1852,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":760,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1307,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":415,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7435,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":392,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":284,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"HOA","description":"Pest Service","amount":220,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":981,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2019,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2027,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Inserv","description":"Dust control Road","amount":835,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":1505,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1625,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":510,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1600,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1544,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":90,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8107,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":262,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"HOA","description":"Pest Service","amount":75,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1344,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2468,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2020,"date":"","vendor":"Merritt","description":"Road re-grade (one-time)","amount":28675,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"50% funded by special assessment"},{"year":2021,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":25,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":56,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Inserv","description":"Dust control Road","amount":728,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":3395,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":3467,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1070,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1850,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1459,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8295,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":508,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":220,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"HOA","description":"Pest Service","amount":150,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":4622,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1302,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2329,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool liner","amount":9500,"category":"Pool & Amenities","lineItem":"Pool liner (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool heater","amount":4500,"category":"Pool & Amenities","lineItem":"Pool heater (capital)","type":"Capital","notes":"Installed 2021"},{"year":2021,"date":"","vendor":"HOA","description":"Pool driveway upgrade","amount":1745,"category":"Grounds & Roads","lineItem":"Pool driveway upgrade (capital)","type":"Capital","notes":"Stone borders"},{"year":2022,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":54,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":62,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1002,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4030,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":7944,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1800,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":1900,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1497,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":100,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":10515,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":353,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":70,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"HOA","description":"Pest Service","amount":75,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":702,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":793,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2955,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2022,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool cover","amount":4310,"category":"Pool & Amenities","lineItem":"Pool cover (capital)","type":"Capital","notes":"Installed 2022"},{"year":2023,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":68,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":2865,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":4760,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":350,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Tree Care Plus","description":"Tree Removal","amount":200,"category":"Grounds & Roads","lineItem":"Tree removal","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1560,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":7205,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"HOA","description":"Pest Service","amount":150,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Oldenburg","description":"Hardscape Maint","amount":711,"category":"Pool & Amenities","lineItem":"Hardscape maintenance","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":830,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2352,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2023,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":5200,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2024,"date":"","vendor":"Horizon Bank","description":"Bank Service Charge/ Checks","amount":26,"category":"Administrative","lineItem":"Bank service charges","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1130,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":4245,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Oldenburg","description":"Road Repair/ Pot holes","amount":1650,"category":"Grounds & Roads","lineItem":"Road maintenance (potholes/spot repairs)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1000,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1778,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8600,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":891,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":81,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":4066,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":1414,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2403,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2024,"date":"","vendor":"Merritt","description":"Road survey (Merritt)","amount":6750,"category":"Grounds & Roads","lineItem":"Road survey (capital)","type":"Capital","notes":"Engineering/survey"},{"year":2025,"date":"","vendor":"Post Office","description":"PO Box/ Postage","amount":72,"category":"Administrative","lineItem":"PO Box / postage","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Inserv","description":"Dust control Road","amount":1156,"category":"Grounds & Roads","lineItem":"Dust control (road)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Roman/ Villwocks/Manny","description":"Landscaping/ Mowing","amount":5565,"category":"Grounds & Roads","lineItem":"Landscaping / mowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"James Laughlin","description":"Snow Plowing","amount":1200,"category":"Grounds & Roads","lineItem":"Snow plowing","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Autos Insurance","description":"Insurance","amount":1712,"category":"Insurance & Professional","lineItem":"Insurance","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cty Fees, Quicken Books","description":"Professional Fees","amount":50,"category":"Insurance & Professional","lineItem":"Professional fees (legal/accounting)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Maint, Supplies & Monitor","amount":8800,"category":"Pool & Amenities","lineItem":"Pool service / maintenance contract","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pool Supplies/ Umbrellas/Flowers","amount":671.06,"category":"Pool & Amenities","lineItem":"Pool supplies & chemicals","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"State of Michigan","description":"Pool License & Inspection","amount":316,"category":"Pool & Amenities","lineItem":"Pool licenses & inspections","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Great Lakes Pleasure Pools","description":"Pool Mechanicals","amount":1033,"category":"Pool & Amenities","lineItem":"Pool mechanicals (operating)","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"HOA","description":"Pest Service","amount":230,"category":"Pool & Amenities","lineItem":"Pest service","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Cell Phone & Install(2025)","description":"Telephone","amount":873.39,"category":"Utilities","lineItem":"Telephone / internet","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Semco, AEP, Water","description":"Utilities","amount":2293.54,"category":"Utilities","lineItem":"Electric / utilities","type":"Operating","notes":""},{"year":2025,"date":"","vendor":"Merritt","description":"Road re-grade (Hollerbach)","amount":191735,"category":"Grounds & Roads","lineItem":"Road re-grade (capital)","type":"Capital","notes":"Major road project; partially reserve-funded"}]};
 // ═══════════════════════════════════════════════════
 // 2. STATE MANAGEMENT
@@ -1113,6 +1134,16 @@ function migrateState() {
   if (!state.historicalData || !state.historicalData.years) state.historicalData = def.historicalData;
   if (!state.vendorLedger || state.vendorLedger.length === 0) state.vendorLedger = def.vendorLedger;
   // New fields added in v3+ — initialize if absent
+  // Migrate: old saves used minReserve; new system uses dynamic calculation
+  if (state.settings.minReserve !== undefined && state.settings.capLookAhead === undefined) {
+    state.settings.capLookAhead = 10;
+    delete state.settings.minReserve;
+  }
+  if (state.settings.capLookAhead === undefined) state.settings.capLookAhead = 10;
+  // Backfill fundingSource on capital projects from older exports
+  (state.capitalProjects || []).forEach(p => {
+    if (!p.fundingSource) { p.fundingSource = 'reserves'; p.reservePct = 100; }
+  });
   if (!state.lotPriorBalances)   state.lotPriorBalances = {};
   if (!state.specialAssessments) state.specialAssessments = [];
   if (!state.lotPayments)        state.lotPayments = [];
@@ -1198,26 +1229,95 @@ function inflatedCost(project) {
   return Math.round(project.baseCost * Math.pow(1 + rate, yearsOut));
 }
 
+// Reserve-funded portion of a project (inflated cost × reservePct%)
+function reserveCost(project) {
+  const total = inflatedCost(project);
+  const pct   = (project.reservePct != null ? project.reservePct : 100) / 100;
+  return Math.round(total * pct);
+}
+
+// Special assessment portion
+function assessmentCost(project) {
+  return inflatedCost(project) - reserveCost(project);
+}
+
 function capexByYear(year) {
   return state.capitalProjects
     .filter(p => p.status !== 'deferred' && p.year === year)
-    .reduce((sum, p) => sum + inflatedCost(p), 0);
+    .reduce((sum, p) => sum + reserveCost(p), 0);  // only reserve-funded portion draws reserves
+}
+
+
+// ── Dynamic reserve minimum ──────────────────────────────────────────────────
+// Returns an array of {year, minimum, opexFloor, capBuffer, drivers[]} for 10 years.
+// Logic:
+//   opexFloor(Y)  = projected opex for year Y (1× operating expenses)
+//   capBuffer(Y)  = sum over all non-deferred projects P within look-ahead window of:
+//                   inflatedCost(P) × (Y - FY + 1) / (P - FY + 1)  [proportional build-up]
+//   minimum(Y)    = opexFloor(Y) + capBuffer(Y)
+function calcDynamicMinimum() {
+  // Simplified model: minimum reserve for year Y =
+  //   1× projected opex for year Y  (non-negotiable operating floor)
+  //   + reserve-funded capital projects actually scheduled in year Y
+  // No look-ahead accumulation — the board decides separately how to fund
+  // large future projects (reserves vs. special assessment vs. split).
+  const s        = state.settings;
+  const fy       = s.fiscalYear;
+  const opexBase = budgetTotal();
+  const opexRate = s.opexInflation / 100;
+
+  const result = [];
+  for (let i = 0; i < 10; i++) {
+    const year      = fy + i;
+    const opexFloor = Math.round(opexBase * Math.pow(1 + opexRate, i));
+    // Only projects DUE in this exact year, reserve-funded portion only
+    const thisYearProjects = state.capitalProjects.filter(p =>
+      p.status !== 'deferred' && p.year === year
+    );
+    const capBuffer = thisYearProjects.reduce((s, p) => s + reserveCost(p), 0);
+    const drivers   = thisYearProjects.map(p => ({
+      name: p.name, year: p.year,
+      totalCost: inflatedCost(p),
+      reserveCost: reserveCost(p),
+      reservePct: p.reservePct ?? 100
+    }));
+    result.push({
+      year,
+      minimum:   opexFloor + capBuffer,
+      opexFloor,
+      capBuffer,
+      drivers
+    });
+  }
+  return result;
+}
+
+// Convenience: get the dynamic minimum for a single year
+function getDynamicMin(year) {
+  const mins = calcDynamicMinimum();
+  return mins.find(m => m.year === year) || mins[0];
 }
 
 function calcForecast(params = {}) {
   const s = state.settings;
   const assessment = params.assessment !== undefined ? params.assessment : s.assessmentPerLot;
   const delinquent = params.delinquent || 0;
+  // duesStartYear: year the new dues level takes effect (default = fiscalYear)
+  // Anything before duesStartYear uses the current plan assessment
+  const duesStartYear = params.duesStartYear || s.fiscalYear;
   const fy = s.fiscalYear;
   const opexBase = budgetTotal();
   const opexRate = s.opexInflation / 100;
 
   const rows = [];
   let balance = s.startingReserve;
+  const dynMins = calcDynamicMinimum();
   for (let i = 0; i < 10; i++) {
     const year = fy + i;
     const payingLots = s.lots - delinquent;
-    const dues = assessment * payingLots;
+    // Use current assessment for years before duesStartYear
+    const effectiveAssessment = year < duesStartYear ? s.assessmentPerLot : assessment;
+    const dues = effectiveAssessment * payingLots;
     const impact = (state.impactFeeRecords || [])
       .filter(r => r.date && r.date.startsWith(String(year)))
       .reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -1226,7 +1326,10 @@ function calcForecast(params = {}) {
     const opex = Math.round(opexBase * Math.pow(1 + opexRate, i));
     const capex = capexByYear(year);
     balance = Math.round(balance + revenue - opex - capex);
-    rows.push({ year, dues, impact, interest, revenue, opex, capex, endBalance: balance });
+    const dynMinRow = dynMins[i];
+    rows.push({ year, dues, impact, interest, revenue, opex, capex, endBalance: balance,
+                dynMin: dynMinRow.minimum, opexFloor: dynMinRow.opexFloor,
+                capBuffer: dynMinRow.capBuffer, drivers: dynMinRow.drivers });
   }
   return rows;
 }
@@ -1247,11 +1350,9 @@ function uid() {
 }
 
 function getHealth(rows) {
-  const mins = rows.map(r => r.endBalance);
-  const minR = Math.min(...mins);
-  const min30 = state.settings.minReserve;
-  if (minR < 0) return 'red';
-  if (rows.every(r => r.endBalance >= min30)) return 'green';
+  const minBalance = Math.min(...rows.map(r => r.endBalance));
+  if (minBalance < 0) return 'red';
+  if (rows.every(r => r.endBalance >= (r.dynMin || 0))) return 'green';
   return 'yellow';
 }
 
@@ -1309,6 +1410,7 @@ function switchTab(tab) {
 // ═══════════════════════════════════════════════════
 function renderSettings() {
   const s = state.settings;
+  updateDynMinKpi();
   document.getElementById('header-title').textContent =
     s.hoaName + ' — Financial Planning System — FY ' + s.fiscalYear;
 
@@ -1340,7 +1442,7 @@ function renderSettings() {
     <div class="kpi-card" style="flex:1;min-width:160px;">
       <div class="kpi-label">Reserve Balance (Jan 1)</div>
       <div class="kpi-value">${fmt(s.startingReserve)}</div>
-      <div class="kpi-sub">target min: ${fmt(s.minReserve)}</div>
+      <div class="kpi-sub" id="kpi-dynmin-sub">dynamic target loading…</div>
     </div>
     <div class="kpi-card" style="flex:1;min-width:160px;">
       <div class="kpi-label">Capital Projects (${s.fiscalYear})</div>
@@ -1352,7 +1454,11 @@ function renderSettings() {
     <div class="field"><label>Fiscal Year</label><input type="number" id="s-fy" value="${s.fiscalYear}" min="2020" max="2040"></div>
     <div class="field"><label>Annual Dues / Lot ($)</label><input type="number" id="s-assess" value="${s.assessmentPerLot}" min="0"><span class="hint">Sets revenue baseline for the year</span></div>
     <div class="field"><label>Starting Reserve Balance ($)</label><input type="number" id="s-startres" value="${s.startingReserve}" min="0"><span class="hint">Actual balance on Jan 1</span></div>
-    <div class="field"><label>Minimum Reserve Target ($)</label><input type="number" id="s-minres" value="${s.minReserve}" min="0"><span class="hint">Board-set floor — forecast flags if breached</span></div>
+    <div class="field"><label>Reserve Target Basis</label>
+      <div style="padding:9px 12px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.82rem;color:#166534;line-height:1.6;">
+        <strong>1× annual opex + current-year capital (reserve-funded portion)</strong><br>
+        <span style="color:#64748b;">Set per-project funding source in the Capital Plan tab.</span>
+      </div></div>
     <div class="field"><label>Reserve Interest Rate (%)</label><input type="number" id="s-rate" value="${s.interestRate}" step="0.1" min="0"><span class="hint">HYSA / money market rate</span></div>
     <div class="field"><label>Opex Inflation (%)</label><input type="number" id="s-opinfl" value="${s.opexInflation}" step="0.1" min="0"><span class="hint">Applied to operating budget in forecast years</span></div>
     <div class="field"><label>Capital Inflation (%)</label><input type="number" id="s-capinfl" value="${s.capexInflation}" step="0.1" min="0"><span class="hint">Applied to capital project base costs</span></div>
@@ -1366,7 +1472,7 @@ function saveSettings() {
   s.lots          = parseInt(document.getElementById('s-lots').value) || 29;
   s.assessmentPerLot = parseFloat(document.getElementById('s-assess').value) || 0;
   s.startingReserve  = parseFloat(document.getElementById('s-startres').value) || 0;
-  s.minReserve    = parseFloat(document.getElementById('s-minres').value) || 0;
+  // capLookAhead no longer user-editable — dynamic minimum is opex + current-year capital
   s.interestRate  = parseFloat(document.getElementById('s-rate').value) || 0;
   s.opexInflation = parseFloat(document.getElementById('s-opinfl').value) || 0;
   s.capexInflation= parseFloat(document.getElementById('s-capinfl').value) || 0;
@@ -1375,6 +1481,16 @@ function saveSettings() {
   const el = document.getElementById('settings-saved');
   el.style.display = 'inline';
   setTimeout(() => el.style.display = 'none', 2000);
+}
+
+function updateDynMinKpi() {
+  const el = document.getElementById('kpi-dynmin-sub');
+  if (!el) return;
+  try {
+    const dm = getDynamicMin(state.settings.fiscalYear);
+    el.textContent = 'dynamic target: ' + fmt(dm.minimum)
+      + ' (opex: ' + fmt(dm.opexFloor) + ' + capital: ' + fmt(dm.capBuffer) + ')';
+  } catch(e) { el.textContent = ''; }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1497,9 +1613,44 @@ function renderBudgetTable() {
   const cats = state.budget.categories;
   const totalBudget = budgetTotal();
   const totalActual = actualsTotal();
+  const fy = state.settings.fiscalYear;
+  const priorYear = fy - 1;
 
+  // Build prior year actuals map from historicalData
+  const priorYearMap = {};
+  const hd = state.historicalData;
+  if (hd && hd.years) {
+    const priorIdx = hd.years.indexOf(priorYear);
+    if (priorIdx >= 0) {
+      hd.categories.forEach(hcat => {
+        hcat.items.forEach(hi => {
+          priorYearMap[hi.name.toLowerCase()] = hi.values[priorIdx] || 0;
+        });
+        // Also store category totals
+        priorYearMap['__cat__' + hcat.id] = hcat.totals[priorIdx] || 0;
+      });
+    }
+  }
+
+  function getPriorYear(itemName) {
+    const key = itemName.toLowerCase().trim();
+    if (priorYearMap[key] !== undefined) return priorYearMap[key];
+    for (const k of Object.keys(priorYearMap)) {
+      if (k.startsWith('__cat__')) continue;
+      if (key.includes(k) || k.includes(key)) return priorYearMap[k];
+    }
+    const firstWord = key.split(/[\s\/&(]/)[0];
+    if (firstWord.length > 4) {
+      for (const k of Object.keys(priorYearMap)) {
+        if (!k.startsWith('__cat__') && k.startsWith(firstWord)) return priorYearMap[k];
+      }
+    }
+    return null;
+  }
+
+  // 8-yr avg map
   const histAvgMap = {};
-  (state.historicalData && state.historicalData.categories || []).forEach(hcat => {
+  (hd && hd.categories || []).forEach(hcat => {
     (hcat.items || []).forEach(hi => { histAvgMap[hi.name.toLowerCase()] = hi.avg8; });
   });
   function getHistAvg(itemName) {
@@ -1517,20 +1668,25 @@ function renderBudgetTable() {
     return null;
   }
 
+  const hasPrior = Object.keys(priorYearMap).length > 0;
+
   let html = `<table class="budget-table">
     <thead><tr>
       <th style="min-width:220px">Line Item</th>
       <th>Budget</th><th>Actual YTD</th><th>Remaining</th><th>% Used</th>
-      <th title="8-year historical average (2018–2025)" style="border-left:2px solid #e2e8f0;color:#7c3aed;">8-Yr Avg</th>
-      <th title="Budget vs. 8-year historical average" style="color:#7c3aed;">vs. Hist</th>
+      ${hasPrior ? `<th title="${priorYear} actual spend" style="border-left:2px solid #e2e8f0;color:#0369a1;">${priorYear} Actual</th>
+      <th title="Current budget vs. prior year actual" style="color:#0369a1;">vs. ${priorYear}</th>` : ''}
+      <th title="8-year historical average (2018–2025)" style="border-left:${hasPrior?'1':'2'}px solid #e2e8f0;color:#7c3aed;">8-Yr Avg</th>
       <th></th>
     </tr></thead><tbody>`;
 
   cats.forEach((cat, ci) => {
     const catBudget = cat.items.reduce((s,it) => s + (it.budget||0), 0);
     const catActual = cat.items.reduce((s,it) => s + (it.actual||0), 0);
+    const catPrior  = priorYearMap['__cat__' + cat.id] || null;
+    const colSpan   = hasPrior ? 8 : 6;
     html += `<tr class="cat-header">
-      <td colspan="7"><strong>${cat.name}</strong></td>
+      <td colspan="${colSpan + 1}"><strong>${cat.name}</strong></td>
       <td><div class="row-actions">
         <button class="icon-btn" title="Add line item" onclick="addBudgetItem('${cat.id}')">+</button>
         <button class="icon-btn" title="Delete category" onclick="deleteCategory('${cat.id}')">🗑</button>
@@ -1542,17 +1698,35 @@ function renderBudgetTable() {
       const pct = item.budget > 0 ? Math.round((item.actual||0) / item.budget * 100) : 0;
       const pillClass = item.actual === 0 ? 'util-empty' : pct >= 100 ? 'util-over' : pct >= 80 ? 'util-warn' : 'util-ok';
       const pillLabel = item.actual === 0 ? '—' : pct + '%';
-      const histAvg = getHistAvg(item.name);
-      let histCell = '<td class="text-right" style="border-left:2px solid #e2e8f0;color:#7c3aed;">—</td><td></td>';
-      if (histAvg !== null && item.budget > 0) {
-        const varPct = Math.round((item.budget - histAvg) / histAvg * 100);
-        const varColor = varPct > 15 ? '#dc2626' : varPct < -15 ? '#2563eb' : '#16a34a';
-        const varLabel = (varPct >= 0 ? '+' : '') + varPct + '%';
-        histCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#7c3aed;font-size:.78rem;">${fmt(histAvg)}</td>
-        <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:${varColor};">${varLabel}</span></td>`;
-      } else if (histAvg !== null) {
-        histCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#7c3aed;font-size:.78rem;">${fmt(histAvg)}</td><td></td>`;
+
+      // Prior year column
+      let priorCell = '';
+      if (hasPrior) {
+        const prior = getPriorYear(item.name);
+        if (prior !== null && prior > 0 && item.budget > 0) {
+          // Normal case: both prior and current have values — show % variance
+          const varPct = Math.round((item.budget - prior) / prior * 100);
+          const varColor = varPct > 10 ? '#dc2626' : varPct < -10 ? '#16a34a' : '#64748b';
+          priorCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#0369a1;font-size:.78rem;">${fmt(prior)}</td>
+          <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:${varColor};">${varPct>=0?'+':''}${varPct}%</span></td>`;
+        } else if ((prior === null || prior === 0) && item.budget > 0) {
+          // New in current year — prior was zero or missing
+          priorCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#94a3b8;font-size:.78rem;">—</td>
+          <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:#7c3aed;">New</span></td>`;
+        } else if (prior !== null && prior > 0 && item.budget === 0) {
+          // Had spend last year, nothing budgeted this year
+          priorCell = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#0369a1;font-size:.78rem;">${fmt(prior)}</td>
+          <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:#16a34a;">-100%</span></td>`;
+        } else {
+          priorCell = `<td style="border-left:2px solid #e2e8f0;color:#94a3b8;">—</td><td></td>`;
+        }
       }
+
+      // 8-yr avg column (no % variance per request)
+      const histAvg = getHistAvg(item.name);
+      const histCell = histAvg !== null
+        ? `<td class="text-right" style="border-left:${hasPrior?'1':'2'}px solid #e2e8f0;color:#7c3aed;font-size:.78rem;">${fmt(histAvg)}</td>`
+        : `<td style="border-left:${hasPrior?'1':'2'}px solid #e2e8f0;color:#7c3aed;">—</td>`;
 
       html += `<tr>
         <td class="editable-cell editable-name" data-type="name" data-ci="${ci}" data-ii="${ii}">${escHtml(item.name)}</td>
@@ -1560,6 +1734,7 @@ function renderBudgetTable() {
         <td class="editable-cell text-right" data-type="actual" data-ci="${ci}" data-ii="${ii}">${fmt(item.actual)}</td>
         <td class="text-right" style="color:${remaining < 0 ? '#dc2626' : '#16a34a'}">${fmt(remaining)}</td>
         <td class="text-right"><span class="util-pill ${pillClass}">${pillLabel}</span></td>
+        ${priorCell}
         ${histCell}
         <td><div class="row-actions">
           <button class="icon-btn" title="Delete" onclick="deleteBudgetItem('${cat.id}','${item.id}')">🗑</button>
@@ -1567,33 +1742,74 @@ function renderBudgetTable() {
       </tr>`;
     });
 
+    // Category footer
+    let catPriorFooter = '';
+    if (hasPrior) {
+      const cp = catPrior || 0;
+      if (cp > 0 && catBudget > 0) {
+        const catVarPct = Math.round((catBudget - cp) / cp * 100);
+        const catVarColor = catVarPct > 10 ? '#dc2626' : catVarPct < -10 ? '#16a34a' : '#64748b';
+        catPriorFooter = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#0369a1;">${fmt(cp)}</td>
+          <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:${catVarColor};">${catVarPct>=0?'+':''}${catVarPct}%</span></td>`;
+      } else if (cp === 0 && catBudget > 0) {
+        catPriorFooter = `<td class="text-right" style="border-left:2px solid #e2e8f0;color:#94a3b8;">—</td>
+          <td class="text-right"><span style="font-size:.72rem;font-weight:700;color:#7c3aed;">New</span></td>`;
+      } else {
+        catPriorFooter = `<td style="border-left:2px solid #e2e8f0;color:#94a3b8;">—</td><td></td>`;
+      }
+    }
     html += `<tr class="cat-footer">
       <td>  ${cat.name} Total</td>
       <td class="text-right">${fmt(catBudget)}</td>
       <td class="text-right">${fmt(catActual)}</td>
       <td class="text-right" style="color:${catBudget-catActual<0?'#dc2626':'#16a34a'}">${fmt(catBudget-catActual)}</td>
       <td class="text-right"><span class="util-pill ${catActual===0?'util-empty':catActual/catBudget>=1?'util-over':catActual/catBudget>=.8?'util-warn':'util-ok'}">${catBudget>0?Math.round(catActual/catBudget*100)+'%':'—'}</span></td>
-      <td colspan="2" style="border-left:2px solid #e2e8f0;"></td>
+      ${catPriorFooter}
+      <td style="border-left:${hasPrior?'1':'2'}px solid #e2e8f0;"></td>
       <td></td>
     </tr>
-    <tr class="add-item-row"><td colspan="8">
+    <tr class="add-item-row"><td colspan="${colSpan + 2}">
       <button class="btn btn-ghost btn-sm" onclick="addBudgetItem('${cat.id}')">+ Add line item to ${escHtml(cat.name)}</button>
     </td></tr>`;
   });
 
-  const grandHistAvg = (state.historicalData && state.historicalData.grandAvg8) || null;
-  const grandVarPct = grandHistAvg ? Math.round((totalBudget - grandHistAvg) / grandHistAvg * 100) : null;
+  // Grand total row
+  const grandHistAvg = (hd && hd.grandAvg8) || null;
+  const priorGrandTotal = hd && hd.grandTotals && hd.years
+    ? (hd.grandTotals[hd.years.indexOf(priorYear)] || null)
+    : null;
+  const grandVarPct = priorGrandTotal && totalBudget
+    ? Math.round((totalBudget - priorGrandTotal) / priorGrandTotal * 100)
+    : null;
+
+  let totalPriorCells = '';
+  if (hasPrior) {
+    if (priorGrandTotal > 0 && totalBudget > 0) {
+      totalPriorCells = `<td class="text-right" style="border-left:2px solid rgba(255,255,255,.2);opacity:.85;">${fmt(priorGrandTotal)}</td>
+         <td class="text-right" style="opacity:.85;">${grandVarPct!==null?(grandVarPct>=0?'+':'')+grandVarPct+'%':''}</td>`;
+    } else {
+      totalPriorCells = `<td style="border-left:2px solid rgba(255,255,255,.2);opacity:.7;">—</td><td></td>`;
+    }
+  }
+
   html += `<tr class="total-row">
     <td>TOTAL OPERATING EXPENSES</td>
     <td class="text-right">${fmt(totalBudget)}</td>
     <td class="text-right">${fmt(totalActual)}</td>
     <td class="text-right">${fmt(totalBudget-totalActual)}</td>
     <td class="text-right">${totalBudget>0?Math.round(totalActual/totalBudget*100)+'%':'—'}</td>
-    <td class="text-right" style="border-left:2px solid rgba(255,255,255,.2);opacity:.85;">${grandHistAvg ? fmt(grandHistAvg) : '—'}</td>
-    <td class="text-right">${grandVarPct !== null ? (grandVarPct >= 0 ? '+' : '') + grandVarPct + '%' : ''}</td>
+    ${totalPriorCells}
+    <td class="text-right" style="border-left:${hasPrior?'1':'2'}px solid rgba(255,255,255,.2);opacity:.85;">${grandHistAvg ? fmt(grandHistAvg) : '—'}</td>
     <td></td>
   </tr></tbody></table>
-  <div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="addCategory()">+ Add new category</button></div>`;
+  <div style="margin-top:10px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+    <button class="btn btn-ghost btn-sm" onclick="addCategory()">+ Add new category</button>
+    ${hasPrior ? `<span style="font-size:.75rem;color:#64748b;">
+      <span style="color:#0369a1;font-weight:700;">Blue</span> = ${priorYear} actual &nbsp;·&nbsp;
+      <span style="color:#7c3aed;font-weight:700;">Purple</span> = 8-year avg &nbsp;·&nbsp;
+      % variance shown vs. ${priorYear} only
+    </span>` : ''}
+  </div>`;
 
   document.getElementById('budget-table-wrap').innerHTML = html;
 }
@@ -1729,6 +1945,13 @@ function renderCapitalTable() {
         ${fmt(infl)}${p.baseCost !== infl ? `<div style="font-size:.68rem;color:#94a3b8;">base: ${fmt(p.baseCost)}</div>` : ''}
       </td>
       <td>
+        ${p.fundingSource === 'assessment'
+          ? '<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#fef9c3;color:#854d0e;">Assessment</span>'
+          : p.fundingSource === 'split'
+          ? `<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#dbeafe;color:#1d4ed8;">${p.reservePct}% Reserves</span>`
+          : '<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;">Reserves</span>'}
+      </td>
+      <td>
         <div style="display:flex;gap:4px;">
           <button class="btn btn-ghost btn-sm" onclick="openProjectModal('${p.id}')">Edit</button>
           <button class="btn btn-ghost btn-sm" onclick="deleteProject('${p.id}')">🗑</button>
@@ -1745,7 +1968,7 @@ function renderCapitalTable() {
     <thead><tr>
       <th>Status</th><th style="min-width:200px">Project</th><th>Category</th><th>Year</th>
       <th class="text-right">Base Cost</th><th class="text-right">Infl Rate</th>
-      <th class="text-right">Inflated Cost</th><th>Actions</th>
+      <th class="text-right">Inflated Cost</th><th>Funding</th><th>Actions</th>
     </tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr style="background:#f0f4f8;font-weight:700;">
@@ -1822,6 +2045,8 @@ function openProjectModal(id) {
     document.getElementById('mp-cost').value = p.baseCost;
     document.getElementById('mp-infl').value = p.inflOverride != null ? p.inflOverride : '';
     document.getElementById('mp-notes').value = p.notes || '';
+    document.getElementById('mp-funding').value = p.fundingSource || 'reserves';
+    document.getElementById('mp-reserve-pct').value = p.reservePct != null ? p.reservePct : 100;
   } else {
     document.getElementById('mp-name').value = '';
     document.getElementById('mp-status').value = 'planned';
@@ -1829,7 +2054,10 @@ function openProjectModal(id) {
     document.getElementById('mp-cost').value = '';
     document.getElementById('mp-infl').value = '';
     document.getElementById('mp-notes').value = '';
+    document.getElementById('mp-funding').value = 'reserves';
+    document.getElementById('mp-reserve-pct').value = 100;
   }
+  updateFundingVisibility();
 
   updateModalPreview();
   document.getElementById('project-modal').classList.add('open');
@@ -1860,6 +2088,10 @@ function updateModalPreview() {
 function saveProject() {
   const name = document.getElementById('mp-name').value.trim();
   if (!name) { alert('Project name required.'); return; }
+  const fundingSource = document.getElementById('mp-funding').value;
+  const reservePct    = fundingSource === 'reserves'   ? 100
+                      : fundingSource === 'assessment' ? 0
+                      : parseFloat(document.getElementById('mp-reserve-pct').value) || 50;
   const project = {
     id: _editingProjectId || uid(),
     name,
@@ -1868,7 +2100,9 @@ function saveProject() {
     year: parseInt(document.getElementById('mp-year').value) || state.settings.fiscalYear,
     baseCost: parseFloat(document.getElementById('mp-cost').value) || 0,
     inflOverride: document.getElementById('mp-infl').value ? parseFloat(document.getElementById('mp-infl').value) : null,
-    notes: document.getElementById('mp-notes').value.trim()
+    notes: document.getElementById('mp-notes').value.trim(),
+    fundingSource,
+    reservePct
   };
 
   if (_editingProjectId) {
@@ -1901,27 +2135,44 @@ function closeModal() {
 // ═══════════════════════════════════════════════════
 function renderForecast() {
   const rows = calcForecast();
+  const dynMinsFC = calcDynamicMinimum();
   const minR = Math.min(...rows.map(r => r.endBalance));
   const minRow = rows.find(r => r.endBalance === minR);
   const health = getHealth(rows);
-  const minTarget = state.settings.minReserve;
-  const allOk = rows.every(r => r.endBalance >= minTarget);
+  const allOk = rows.every(r => r.endBalance >= (r.dynMin || 0));
+  // Years below target
+  const belowTarget = rows.filter(r => r.endBalance < r.dynMin);
+  const worstYear = belowTarget.length
+    ? belowTarget.reduce((a,b) => (a.endBalance - a.dynMin) < (b.endBalance - b.dynMin) ? a : b)
+    : null;
 
   document.getElementById('forecast-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-icon">${health==='green'?'✅':health==='yellow'?'⚠️':'🚨'}</div><div class="kpi-label">10-Year Health</div>
-      <div class="kpi-value" style="font-size:1.1rem;color:${health==='green'?'#16a34a':health==='yellow'?'#d97706':'#dc2626'}">${allOk?'All years OK':'Caution — see below'}</div></div>
-    <div class="kpi-card"><div class="kpi-icon">📉</div><div class="kpi-label">Lowest Reserve (any yr)</div>
-      <div class="kpi-value" style="color:${minR<0?'#dc2626':minR<minTarget?'#d97706':'#16a34a'}">${fmt(minR)}</div>
-      <div class="kpi-sub">In ${minRow?.year}</div></div>
+    <div class="kpi-card"><div class="kpi-icon">${health==='green'?'✅':health==='yellow'?'⚠️':'🚨'}</div>
+      <div class="kpi-label">10-Year Health</div>
+      <div class="kpi-value" style="font-size:1.1rem;color:${health==='green'?'#16a34a':health==='yellow'?'#d97706':'#dc2626'}">
+        ${allOk?'On Track':'Shortfall Projected'}</div>
+      <div class="kpi-sub">${allOk?'All years meet dynamic target':belowTarget.length+' year(s) below target'}</div>
+    </div>
+    <div class="kpi-card"><div class="kpi-icon">📉</div><div class="kpi-label">Lowest Reserve</div>
+      <div class="kpi-value" style="color:${minR<0?'#dc2626':'#1e293b'}">${fmt(minR)}</div>
+      <div class="kpi-sub">In ${minRow?.year} · target: ${fmt(minRow?.dynMin||0)}</div>
+    </div>
+    <div class="kpi-card"><div class="kpi-icon">🎯</div><div class="kpi-label">Current Year Target</div>
+      <div class="kpi-value" style="font-size:1.2rem;">${fmt(dynMinsFC[0].minimum)}</div>
+      <div class="kpi-sub">opex floor ${fmt(dynMinsFC[0].opexFloor)} + capital ${fmt(dynMinsFC[0].capBuffer)}</div>
+    </div>
     <div class="kpi-card"><div class="kpi-icon">🔮</div><div class="kpi-label">Ending Reserve (${state.settings.fiscalYear+9})</div>
-      <div class="kpi-value">${fmt(rows[9].endBalance)}</div></div>
+      <div class="kpi-value">${fmt(rows[9].endBalance)}</div>
+      <div class="kpi-sub">target: ${fmt(dynMinsFC[9].minimum)}</div>
+    </div>
     <div class="kpi-card"><div class="kpi-icon">📊</div><div class="kpi-label">Total 10-yr Operating</div>
       <div class="kpi-value" style="font-size:1.3rem;">${fmt(rows.reduce((s,r)=>s+r.opex,0))}</div></div>
     <div class="kpi-card"><div class="kpi-icon">🔧</div><div class="kpi-label">Total 10-yr Capital</div>
       <div class="kpi-value" style="font-size:1.3rem;">${fmt(rows.reduce((s,r)=>s+r.capex,0))}</div></div>
   `;
 
-  const colors = rows.map(r => r.endBalance < 0 ? '#ef4444' : r.endBalance < minTarget ? '#f59e0b' : '#3b82f6');
+  const colors = rows.map(r => r.endBalance < 0 ? '#ef4444'
+    : r.endBalance < r.dynMin ? '#f59e0b' : '#3b82f6');
   const lineColor = health === 'red' ? '#ef4444' : health === 'yellow' ? '#f59e0b' : '#3b82f6';
   const fillColor = health === 'red' ? 'rgba(239,68,68,.08)' : health === 'yellow' ? 'rgba(245,158,11,.08)' : 'rgba(59,130,246,.08)';
 
@@ -1931,8 +2182,11 @@ function renderForecast() {
       { label:'Reserve Balance', data:rows.map(r=>r.endBalance),
         borderColor:lineColor, backgroundColor:fillColor, borderWidth:3,
         pointRadius:7, pointBackgroundColor:colors, pointBorderColor:'white', pointBorderWidth:2, fill:true, tension:.35 },
-      { label:'Minimum Target', data:Array(10).fill(minTarget),
-        borderColor:'#ef4444', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false }
+      { label:'Dynamic Target (opex + capital)', data:rows.map(r=>r.dynMin),
+        borderColor:'#ef4444', borderWidth:2, borderDash:[6,4], pointRadius:4,
+        pointBackgroundColor:'#ef4444', fill:false, tension:.1 },
+      { label:'Opex Floor Only', data:rows.map(r=>r.opexFloor),
+        borderColor:'#f59e0b', borderWidth:1.5, borderDash:[3,3], pointRadius:0, fill:false, tension:.1 }
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
@@ -1945,40 +2199,75 @@ function renderForecast() {
     }
   });
 
-  let thtml = `<thead><tr>
-    <th>Year</th><th class="text-right">Opening</th><th class="text-right">Dues Revenue</th>
-    <th class="text-right">Impact Fees</th><th class="text-right">Other Revenue</th><th class="text-right">Interest</th>
-    <th class="text-right">Total In</th><th class="text-right">Opex</th>
-    <th class="text-right">Capital</th><th class="text-right">Ending Balance</th><th class="text-right">vs. Min</th>
-  </tr></thead><tbody>`;
+  // ── Column layout: Opening | Cash In (3 cols) | = Total In | Cash Out (2 cols) | = Ending | Target | vs. Target
+  let thtml = `<thead>
+    <tr style="background:#f8fafc;">
+      <th rowspan="2" style="vertical-align:bottom;">Year</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom;">Opening<br>Balance</th>
+      <th colspan="3" class="text-right" style="text-align:center;color:#16a34a;border-bottom:2px solid #16a34a;">Cash In</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom;color:#16a34a;border-left:2px solid #e2e8f0;">Total In</th>
+      <th colspan="2" class="text-right" style="text-align:center;color:#dc2626;border-bottom:2px solid #dc2626;border-left:2px solid #e2e8f0;">Cash Out</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom;font-weight:800;border-left:2px solid #1e293b;">Ending<br>Balance</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom;color:#64748b;font-size:.75rem;">Required<br>This Year</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom;font-size:.75rem;">vs.<br>Required</th>
+    </tr>
+    <tr style="background:#f8fafc;">
+      <th class="text-right" style="color:#16a34a;font-size:.72rem;">Dues</th>
+      <th class="text-right" style="color:#16a34a;font-size:.72rem;">Fees</th>
+      <th class="text-right" style="color:#16a34a;font-size:.72rem;">Interest</th>
+      <th class="text-right" style="color:#dc2626;font-size:.72rem;border-left:2px solid #e2e8f0;">Opex</th>
+      <th class="text-right" style="color:#dc2626;font-size:.72rem;">Capital</th>
+    </tr>
+  </thead><tbody>`;
 
   rows.forEach((r, i) => {
     const opening = i === 0 ? state.settings.startingReserve : rows[i-1].endBalance;
-    const vsMin = r.endBalance - minTarget;
-    const balClass = r.endBalance < 0 ? 'balance-bad' : r.endBalance < minTarget ? 'balance-warn' : 'balance-ok';
-    const vsClass = vsMin < 0 ? 'fail' : vsMin < 10000 ? 'warn' : 'pass';
+    const vsMin   = r.endBalance - r.dynMin;
+    const balClass = r.endBalance < 0 ? 'balance-bad' : r.endBalance < r.dynMin ? 'balance-warn' : 'balance-ok';
+    const vsClass  = vsMin < 0 ? 'fail' : vsMin < 5000 ? 'warn' : 'pass';
+    const capNote  = r.capex > 0
+      ? r.drivers?.map(d => d.name + (d.reservePct < 100 ? ' (' + d.reservePct + '% res.)' : '')).join(', ')
+      : '';
     thtml += `<tr>
       <td><strong>${r.year}</strong></td>
       <td class="text-right text-muted">${fmt(opening)}</td>
-      <td class="text-right">${fmt(r.dues)}</td>
-      <td class="text-right">${r.impact > 0 ? fmt(r.impact) : '<span class="text-muted">—</span>'}</td>
-      <td class="text-right">${fmt(r.interest)}</td>
-      <td class="text-right" style="font-weight:600;">${fmt(r.revenue)}</td>
-      <td class="text-right" style="color:#dc2626;">${fmt(r.opex)}</td>
-      <td class="text-right" style="color:${r.capex>0?'#d97706':'#94a3b8'};font-weight:${r.capex>0?700:400};">${r.capex>0?fmt(r.capex):'—'}</td>
-      <td class="text-right ${balClass}" style="font-weight:700;">${fmt(r.endBalance)}</td>
-      <td class="text-right ${vsClass}">${vsMin>=0?'+':''}${fmt(vsMin)}</td>
+      <td class="text-right" style="color:#16a34a;">${fmt(r.dues)}</td>
+      <td class="text-right" style="color:#16a34a;">${r.impact > 0 ? fmt(r.impact) : '<span class="text-muted">—</span>'}</td>
+      <td class="text-right" style="color:#16a34a;">${fmt(r.interest)}</td>
+      <td class="text-right" style="font-weight:700;color:#16a34a;border-left:2px solid #e2e8f0;">${fmt(r.revenue)}</td>
+      <td class="text-right" style="color:#dc2626;border-left:2px solid #e2e8f0;">(${fmt(r.opex)})</td>
+      <td class="text-right" style="color:${r.capex>0?'#d97706':'#94a3b8'};">
+        ${r.capex>0 ? '(' + fmt(r.capex) + ')' : '—'}
+        ${capNote ? '<div style="font-size:.68rem;color:#94a3b8;">' + capNote + '</div>' : ''}
+      </td>
+      <td class="text-right ${balClass}" style="font-weight:800;font-size:.92rem;border-left:2px solid #1e293b;">${fmt(r.endBalance)}</td>
+      <td class="text-right" style="color:#64748b;font-size:.8rem;">
+        ${fmt(r.dynMin)}
+        ${r.capBuffer > 0 ? '<div style="font-size:.68rem;color:#94a3b8;">incl. ' + fmt(r.capBuffer) + ' cap.</div>' : ''}
+      </td>
+      <td class="text-right ${vsClass}" style="font-weight:600;">${vsMin>=0?'+':''}${fmt(vsMin)}</td>
     </tr>`;
   });
 
-  thtml += `<tr style="background:#f0f4f8;font-weight:700;"><td>10-YR TOTAL</td><td></td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.dues,0))}</td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.impact,0))}</td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.interest,0))}</td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.revenue,0))}</td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.opex,0))}</td>
-    <td class="text-right">${fmt(rows.reduce((s,r)=>s+r.capex,0))}</td>
-    <td class="text-right">${fmt(rows[9].endBalance)}</td><td></td>
+  const tot10 = {
+    dues:    rows.reduce((s,r)=>s+r.dues,0),
+    impact:  rows.reduce((s,r)=>s+r.impact,0),
+    interest:rows.reduce((s,r)=>s+r.interest,0),
+    revenue: rows.reduce((s,r)=>s+r.revenue,0),
+    opex:    rows.reduce((s,r)=>s+r.opex,0),
+    capex:   rows.reduce((s,r)=>s+r.capex,0),
+  };
+  thtml += `<tr style="background:#1e293b;color:white;font-weight:700;">
+    <td style="border-radius:8px 0 0 8px;">10-YR TOTAL</td>
+    <td></td>
+    <td class="text-right">${fmt(tot10.dues)}</td>
+    <td class="text-right">${fmt(tot10.impact)}</td>
+    <td class="text-right">${fmt(tot10.interest)}</td>
+    <td class="text-right" style="border-left:2px solid rgba(255,255,255,.2);">${fmt(tot10.revenue)}</td>
+    <td class="text-right" style="border-left:2px solid rgba(255,255,255,.2);">(${fmt(tot10.opex)})</td>
+    <td class="text-right">(${fmt(tot10.capex)})</td>
+    <td class="text-right" style="border-left:2px solid rgba(255,255,255,.3);border-radius:0 8px 8px 0;">${fmt(rows[9].endBalance)}</td>
+    <td></td><td></td>
   </tr></tbody>`;
 
   document.getElementById('forecast-table').innerHTML = thtml;
@@ -2019,19 +2308,20 @@ function updateScenario() {
     '−' + fmt(delinqCost) + '/yr in lost dues revenue (' + delinq + ' of ' + state.settings.lots + ' lots)';
 
   const basePlan = calcForecast();
-  const scenario = calcForecast({ assessment: dues, delinquent: delinq });
+  const scenario = calcForecast({ assessment: dues, delinquent: delinq, duesStartYear: 2027 });
   const health = getHealth(scenario);
   const minR = Math.min(...scenario.map(r => r.endBalance));
   const minYear = scenario.find(r => r.endBalance === minR)?.year;
 
   const healthEl = document.getElementById('sc-health');
   healthEl.className = 'scenario-health ' + health;
-  const allOk = scenario.every(r => r.endBalance >= state.settings.minReserve);
+  const allOk = scenario.every(r => r.endBalance >= (r.dynMin || 0));
+  const dynFloor = fmt(getDynamicMin(state.settings.fiscalYear).minimum);
   healthEl.innerHTML = health === 'green'
-    ? `✓ Financially sustainable — all 10 years above $${state.settings.minReserve.toLocaleString()} minimum`
+    ? '✓ On track — reserves meet dynamic target (opex + capital buffer) in all 10 years'
     : health === 'yellow'
-    ? `⚠ Below minimum in some years — lowest: ${fmt(minR)} in ${minYear}`
-    : `✗ Reserves go negative in ${minYear} — not sustainable`;
+    ? '⚠ Below target in some years — lowest: ' + fmt(minR) + ' in ' + minYear + ' (target: ' + fmt(getDynamicMin(minYear)?.minimum||0) + ')'
+    : '✗ Reserves go negative in ' + minYear + ' — not sustainable';
 
   makeChart('scenario-chart', {
     type:'line',
@@ -2042,7 +2332,7 @@ function updateScenario() {
       { label:'Scenario', data:scenario.map(r=>r.endBalance),
         borderColor:'#f59e0b', borderWidth:3, pointRadius:5, fill:false, tension:.3,
         pointBackgroundColor:scenario.map(r => r.endBalance < state.settings.minReserve ? '#ef4444' : '#f59e0b') },
-      { label:'Min Target', data:Array(10).fill(state.settings.minReserve),
+      { label:'Dynamic Target', data:basePlan.map(r=>r.dynMin),
         borderColor:'#ef4444', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false }
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
@@ -2053,9 +2343,13 @@ function updateScenario() {
     }
   });
 
+  const fy2 = state.settings.fiscalYear;
+  const row2027base = basePlan.find(r=>r.year===2027) || basePlan[1];
+  const row2027sc   = scenario.find(r=>r.year===2027) || scenario[1];
   const metrics = [
-    ['2026 Revenue', fmt(basePlan[0].revenue), fmt(scenario[0].revenue)],
-    ['2026 Ending Reserve', fmt(basePlan[0].endBalance), fmt(scenario[0].endBalance)],
+    [fy2+' Revenue (unchanged)', fmt(basePlan[0].revenue), fmt(scenario[0].revenue)],
+    ['2027 Revenue (new dues)', fmt(row2027base?.revenue||0), fmt(row2027sc?.revenue||0)],
+    [fy2+' Ending Reserve', fmt(basePlan[0].endBalance), fmt(scenario[0].endBalance)],
     ['Lowest Reserve (10yr)', fmt(Math.min(...basePlan.map(r=>r.endBalance))), fmt(minR)],
     ['All years ≥ min?', basePlan.every(r=>r.endBalance>=state.settings.minReserve)?'<span class="pass">✓ Yes</span>':'<span class="warn">⚠ No</span>',
       allOk?'<span class="pass">✓ Yes</span>':'<span class="fail">✗ No</span>'],
@@ -2071,19 +2365,19 @@ function updateScenario() {
 function renderAllScenariosTable(activeAmt) {
   const delinq = parseInt(document.getElementById('sc-delinq-slider')?.value || 0);
   const levels = [1500,1600,1700,1800,1900,2000,2100,2200];
-  const minTarget = state.settings.minReserve;
+  // minTarget replaced by dynamic calculation per row
   let html = `<thead><tr>
-    <th>Annual Dues</th><th style="text-align:right">Per Month</th><th style="text-align:right">2026 Surplus</th>
+    <th>Annual Dues (eff. 2027)</th><th style="text-align:right">Per Month</th><th style="text-align:right">2026 Surplus</th>
     <th style="text-align:right">Lowest Reserve</th><th style="text-align:right">2033 Reserve</th>
     <th style="text-align:right">Ending ${state.settings.fiscalYear+9}</th><th style="text-align:right">All yrs ≥ min?</th>
   </tr></thead><tbody>`;
 
   levels.forEach(amt => {
-    const rows = calcForecast({ assessment: amt, delinquent: delinq });
+    const rows = calcForecast({ assessment: amt, delinquent: delinq, duesStartYear: 2027 });
     const minR = Math.min(...rows.map(r => r.endBalance));
     const r2033 = rows.find(r => r.year === 2033)?.endBalance;
-    const allOk = rows.every(r => r.endBalance >= minTarget);
-    const surplus0 = rows[0].revenue - rows[0].opex;
+    const allOk = rows.every(r => r.endBalance >= (r.dynMin || 0));
+    const surplus0 = rows[0].revenue - rows[0].opex; // 2026 always uses current dues
     const isActive = amt === (activeAmt || state.settings.assessmentPerLot);
     const minFmt = minR < 0 ? `<span class="fail">${fmt(minR)}</span>` : minR < minTarget ? `<span class="warn">${fmt(minR)}</span>` : `<span class="pass">${fmt(minR)}</span>`;
     const r2033fmt = !r2033 ? '—' : r2033 < 0 ? `<span class="fail">${fmt(r2033)}</span>` : r2033 < minTarget ? `<span class="warn">${fmt(r2033)}</span>` : `<span class="pass">${fmt(r2033)}</span>`;
@@ -2134,6 +2428,44 @@ function renderHomeowner() {
       <td style="text-align:right;color:#64748b;">${total>0?Math.round(c.budget/total*100)+'%':'—'}</td>
     </tr>`).join('');
 
+
+  // ── Page 2: prior year budget comparison ────────────────────────────────
+  const hd2     = state.historicalData;
+  const priorYr = s.fiscalYear - 1;
+  const priorIdx2 = hd2 && hd2.years ? hd2.years.indexOf(priorYr) : -1;
+  const priorCatTotals = {};
+  if (priorIdx2 >= 0 && hd2.categories) {
+    hd2.categories.forEach(hc => { priorCatTotals[hc.id] = hc.totals[priorIdx2] || 0; });
+  }
+  const hoTotalPrior = priorIdx2 >= 0 && hd2.grandTotals ? (hd2.grandTotals[priorIdx2] || 0) : 0;
+  const hoGrandVarAmt = hoTotalPrior > 0 ? total - hoTotalPrior : null;
+  const hoGrandVarPct = hoGrandVarAmt !== null && hoTotalPrior > 0
+    ? Math.round(hoGrandVarAmt / hoTotalPrior * 100) : null;
+  const hoGrandVarColor = hoGrandVarAmt === null ? '#64748b'
+    : hoGrandVarAmt > 0 ? '#dc2626' : '#16a34a';
+  const hoGrandVar = hoGrandVarPct !== null
+    ? fmt(hoGrandVarAmt) + ' (' + (hoGrandVarPct >= 0 ? '+' : '') + hoGrandVarPct + '%)'
+    : '—';
+
+  const hoBudgetRows = cats.map((c, ci) => {
+    const prior = priorCatTotals[c.id] || 0;
+    const varAmt = prior > 0 ? c.budget - prior : null;
+    const varPct = varAmt !== null && prior > 0 ? Math.round(varAmt / prior * 100) : null;
+    const varColor = varAmt === null ? '#64748b' : varAmt > 0 ? '#dc2626' : '#16a34a';
+    const varStr = varPct !== null
+      ? fmt(varAmt) + ' (' + (varPct >= 0 ? '+' : '') + varPct + '%)'
+      : '—';
+    const bg = ci % 2 === 0 ? '#ffffff' : '#f8fafc';
+    return '<tr style="background:' + bg + ';">' +
+      '<td style="padding:8px 12px;">' + c.name + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;font-weight:600;">' + fmt(c.budget) + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;color:#64748b;">' + (prior > 0 ? fmt(prior) : '—') + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;font-weight:600;color:' + varColor + ';">' + varStr + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;color:#64748b;">' + fmt(Math.round(c.budget / s.lots)) + '</td>' +
+      '</tr>';
+  }).join('');
+
+
   const futureProjects = state.capitalProjects
     .filter(p => p.status !== 'deferred' && p.year >= s.fiscalYear)
     .sort((a,b) => a.year - b.year);
@@ -2150,10 +2482,67 @@ function renderHomeowner() {
     </tr>`;
   }).join('');
 
-  const reservePct = Math.min(100, Math.max(0, Math.round(rows[0].endBalance / (s.minReserve * 3) * 100)));
+  // Dynamic minimums for homeowner view
+  const dynMinsHO = calcDynamicMinimum();
+
+  // Build capital+reserve rows (10-year window)
+  const hoCapitalRows = dynMinsHO.map((dm, i) => {
+    const row = rows[i];
+    const projects = state.capitalProjects.filter(p =>
+      p.status !== 'deferred' && p.year === dm.year
+    );
+    const projCost = projects.reduce((s, p) => s + inflatedCost(p), 0);
+    const projNames = projects.map(p => p.name).join(', ') || '—';
+    const onTrack = row.endBalance >= dm.minimum;
+    const gap = row.endBalance - dm.minimum;
+    const statusColor = row.endBalance < 0 ? '#991b1b'
+      : !onTrack ? '#854d0e' : '#166534';
+    const statusBg = row.endBalance < 0 ? '#fee2e2'
+      : !onTrack ? '#fef9c3' : '#dcfce7';
+    const statusLabel2 = row.endBalance < 0 ? '⚠ Negative'
+      : !onTrack ? '⚠ Below target (' + fmt(gap) + ')' : '✓ On track';
+    const rowBg = row.endBalance < 0 ? '#fef2f2' : !onTrack ? '#fffbeb' : 'white';
+    return '<tr style="background:' + rowBg + ';border-bottom:1px solid #f1f5f9;">' +
+      '<td style="padding:8px 12px;font-weight:600;">' + dm.year + '</td>' +
+      '<td style="padding:8px 12px;color:#374151;">' + projNames + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;color:' + (projCost>0?'#854d0e':'#94a3b8') + ';font-weight:' + (projCost>0?700:400) + ';">' +
+        (projCost > 0 ? fmt(projCost) : '—') + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;color:#64748b;">' + fmt(dm.minimum) + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + (row.endBalance < 0 ? '#dc2626' : '#1e293b') + ';">' +
+        fmt(row.endBalance) + '</td>' +
+      '<td style="padding:8px 12px;text-align:right;">' +
+        '<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;' +
+          'background:' + statusBg + ';color:' + statusColor + ';">' + statusLabel2 + '</span></td>' +
+      '</tr>';
+  }).join('');
+
+  // Reserve narrative
+  const belowYears = rows.filter(r => r.endBalance < r.dynMin);
+  const negYears   = rows.filter(r => r.endBalance < 0);
+  let hoReserveNarrative;
+  if (health === 'green') {
+    hoReserveNarrative = '<strong>✓ Reserve fund is on track.</strong> Projected balances meet or exceed the ' +
+      'dynamic target — covering one year of operating expenses plus proportional pre-funding for all planned ' +
+      'capital projects — in every year of the 10-year plan.';
+  } else if (negYears.length > 0) {
+    const yr = negYears[0].year;
+    const proj = state.capitalProjects.find(p => p.year === yr && p.status !== 'deferred');
+    hoReserveNarrative = '<strong>⚠ Attention required.</strong> Reserves are projected to go negative in ' + yr +
+      (proj ? ' due to the ' + proj.name + ' project (' + fmt(inflatedCost(proj)) + ')' : '') +
+      '. The board is evaluating dues adjustments and capital timing to address this shortfall.';
+  } else {
+    const yr = belowYears[0]?.year;
+    const proj = state.capitalProjects.find(p => p.year === yr && p.status !== 'deferred');
+    hoReserveNarrative = '<strong>⚠ Reserve monitoring in progress.</strong> Projected reserves fall below the ' +
+      'required target in ' + yr +
+      (proj ? ', primarily due to the planned ' + proj.name + ' (' + fmt(inflatedCost(proj)) + ')' : '') +
+      '. The board is actively planning to ensure adequate funding through dues adjustments or project timing.';
+  }
+
   const fillClass = health === 'green' ? '' : health === 'yellow' ? 'warn' : 'danger';
 
   document.getElementById('ho-content').innerHTML = `
+    <!-- PAGE 1: HOUSEHOLD VIEW (existing) -->
     <div class="ho-section">
       <h2>💰 Your Annual Dues — FY ${s.fiscalYear}</h2>
       <div class="ho-dues-box">
@@ -2191,50 +2580,130 @@ function renderHomeowner() {
               <td style="text-align:right;"><strong>${fmt(Math.round(total/s.lots))}</strong></td><td style="text-align:right;">100%</td></tr>
         </table>
       </div>
-      <div style="font-size:.8rem;color:#64748b;margin-top:14px;line-height:1.6;padding:12px;background:#f8fafc;border-radius:8px;">
-        Operating expenses are projected to grow at approximately ${s.opexInflation}% per year. Your dues cover operating costs with the remainder going into the reserve fund for capital projects.
-      </div>
     </div>
 
     <div class="ho-section">
-      <h2>🔧 Planned Community Improvements</h2>
-      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">These are one-time projects funded from our reserve account. Base costs are adjusted for inflation to estimate the actual cost when each project is expected to occur.</p>
-      <table class="ho-project-list">
-        <thead><tr><th>Project</th><th>Category</th><th style="text-align:center">Year</th><th style="text-align:right">Est. Cost</th><th>Status</th></tr></thead>
-        <tbody>${projRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">No upcoming projects entered yet</td></tr>'}</tbody>
-      </table>
-      <div style="font-size:.78rem;color:#94a3b8;margin-top:10px;">All costs are inflation-adjusted estimates. Actual costs may vary. Projects are funded from the HOA reserve fund.</div>
-    </div>
-
-    <div class="ho-section">
-      <h2>🏦 Reserve Fund Health</h2>
-      <p style="font-size:.85rem;color:#475569;margin-bottom:14px;">
-        Our reserve fund is the HOA's "savings account" — used to fund capital projects and handle unexpected expenses. We maintain a minimum target of <strong>${fmt(s.minReserve)}</strong>.
+      <h2>🏗 Capital Plan &amp; Reserve Trajectory</h2>
+      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">
+        Our reserve fund must cover two obligations: at least one full year of operating
+        expenses as a non-negotiable floor, plus proportional pre-funding for upcoming
+        capital projects. The table below shows planned projects alongside the reserve
+        balance and required target for each year.
       </p>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
-        <div class="ho-stat"><div class="val">${fmt(s.startingReserve)}</div><div class="lbl">Starting Balance (Jan 1)</div></div>
-        <div class="ho-stat"><div class="val">${fmt(rows[0].endBalance)}</div><div class="lbl">Projected Year-End Balance</div></div>
-        <div class="ho-stat" style="background:${health==='green'?'#f0fdf4':health==='yellow'?'#fefce8':'#fef2f2'};">
-          <div class="val" style="color:${health==='green'?'#166534':health==='yellow'?'#854d0e':'#991b1b'}">${fmt(s.minReserve)}</div>
-          <div class="lbl">Minimum Target</div>
-        </div>
+
+      <!-- Capital timeline + reserve by year table -->
+      <div style="overflow-x:auto;margin-bottom:20px;">
+        <table style="width:100%;border-collapse:collapse;font-size:.83rem;">
+          <thead>
+            <tr style="background:#1e293b;color:white;">
+              <th style="padding:8px 12px;text-align:left;">Year</th>
+              <th style="padding:8px 12px;text-align:left;">Capital Projects</th>
+              <th style="padding:8px 12px;text-align:right;">Project Cost</th>
+              <th style="padding:8px 12px;text-align:right;">Reserve Target</th>
+              <th style="padding:8px 12px;text-align:right;">Projected Reserve</th>
+              <th style="padding:8px 12px;text-align:right;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${hoCapitalRows}
+          </tbody>
+        </table>
       </div>
-      <div style="font-size:.8rem;color:#64748b;margin-bottom:6px;">Reserve balance relative to 3× minimum target:</div>
-      <div class="ho-reserve-bar"><div class="ho-reserve-fill ${fillClass}" style="width:${reservePct}%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#94a3b8;"><span>$0</span><span>${fmt(s.minReserve)} (min)</span><span>${fmt(s.minReserve*3)}</span></div>
-      <div style="margin-top:14px;padding:14px;border-radius:10px;font-size:.88rem;line-height:1.6;
+
+      <!-- Plain-language reserve narrative -->
+      <div style="padding:14px 16px;border-radius:10px;font-size:.88rem;line-height:1.7;
         background:${health==='green'?'#f0fdf4':health==='yellow'?'#fefce8':'#fef2f2'};
         border-left:4px solid ${health==='green'?'#22c55e':health==='yellow'?'#f59e0b':'#ef4444'};
         color:${health==='green'?'#166534':health==='yellow'?'#854d0e':'#991b1b'};">
-        ${health==='green'
-          ? `<strong>✓ Healthy.</strong> Based on the current dues level and capital plan, our reserve fund meets the $${s.minReserve.toLocaleString()} minimum target in all 10 projected years.`
-          : health==='yellow'
-          ? `<strong>⚠ Monitoring required.</strong> Our reserve fund is projected to dip below the $${s.minReserve.toLocaleString()} minimum in one or more years. The board is evaluating options.`
-          : `<strong>⚠ Attention required.</strong> Reserve projections show a potential shortfall. The board is actively reviewing dues levels and capital timing.`}
+        ${hoReserveNarrative}
+      </div>
+
+      <div style="margin-top:14px;font-size:.78rem;color:#94a3b8;line-height:1.6;">
+        Reserve target = 1× annual operating expenses + proportional pre-funding for
+        capital projects within the 10-year plan window. All project costs are
+        inflation-adjusted estimates.
       </div>
     </div>
 
-    <div style="text-align:center;font-size:.78rem;color:#94a3b8;padding:16px;">
+        <!-- PAGE BREAK for print -->
+    <div style="page-break-before:always;"></div>
+
+    <!-- PAGE 2: BUDGET SUMMARY + CASH POSITION -->
+    <div class="ho-section" style="margin-top:32px;">
+      <h2>📊 Annual Budget — FY ${s.fiscalYear} vs. ${s.fiscalYear-1}</h2>
+      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">
+        Operating expenses by category, comparing the current year budget to prior year actuals.
+        All amounts are board-approved expenditure plans.
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+        <thead>
+          <tr style="background:#166534;color:white;">
+            <th style="padding:9px 12px;text-align:left;font-weight:700;">Category</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:700;">FY ${s.fiscalYear} Budget</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:700;">${s.fiscalYear-1} Actual</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:700;">Change</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:700;">Per Lot</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${hoBudgetRows}
+        </tbody>
+        <tfoot>
+          <tr style="background:#f0fdf4;font-weight:700;border-top:2px solid #166534;">
+            <td style="padding:10px 12px;">TOTAL OPERATING</td>
+            <td style="padding:10px 12px;text-align:right;">${fmt(total)}</td>
+            <td style="padding:10px 12px;text-align:right;color:#64748b;">${hoTotalPrior > 0 ? fmt(hoTotalPrior) : '—'}</td>
+            <td style="padding:10px 12px;text-align:right;color:${hoGrandVarColor};">${hoGrandVar}</td>
+            <td style="padding:10px 12px;text-align:right;">${fmt(Math.round(total/s.lots))}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="ho-section">
+      <h2>💵 Cash Position — FY ${s.fiscalYear}</h2>
+      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">
+        Reserve account balance at the start of the year and projected year-end position based on
+        the current budget, capital plan, and dues revenue.
+      </p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
+        <div class="ho-stat" style="flex:1;min-width:160px;">
+          <div class="val">${fmt(s.startingReserve)}</div>
+          <div class="lbl">Jan 1 Opening Balance</div>
+        </div>
+        <div class="ho-stat" style="flex:1;min-width:160px;background:#eff6ff;">
+          <div class="val" style="color:#1d4ed8;">+${fmt(rows[0].dues)}</div>
+          <div class="lbl">Dues Revenue</div>
+        </div>
+        <div class="ho-stat" style="flex:1;min-width:160px;background:#eff6ff;">
+          <div class="val" style="color:#1d4ed8;">+${fmt(rows[0].interest)}</div>
+          <div class="lbl">Interest Income</div>
+        </div>
+        <div class="ho-stat" style="flex:1;min-width:160px;background:#fef2f2;">
+          <div class="val" style="color:#dc2626;">-${fmt(rows[0].opex)}</div>
+          <div class="lbl">Operating Expenses</div>
+        </div>
+        ${rows[0].capex > 0 ? `
+        <div class="ho-stat" style="flex:1;min-width:160px;background:#fef9c3;">
+          <div class="val" style="color:#854d0e;">-${fmt(rows[0].capex)}</div>
+          <div class="lbl">Capital Projects</div>
+        </div>` : ''}
+        <div class="ho-stat" style="flex:1;min-width:160px;background:${rows[0].endBalance >= s.minReserve ? '#f0fdf4' : '#fef2f2'};">
+          <div class="val" style="color:${rows[0].endBalance >= s.minReserve ? '#166534' : '#dc2626'};">${fmt(rows[0].endBalance)}</div>
+          <div class="lbl">Dec 31 Projected Balance</div>
+        </div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;font-size:.82rem;color:#475569;line-height:1.7;">
+        <strong>Minimum reserve target: ${fmt(s.minReserve)}</strong> — established by board policy as the floor below which
+        reserves should not fall. The ${s.fiscalYear} projection
+        ${rows[0].endBalance >= s.minReserve
+          ? '<strong style="color:#166534;">remains above this threshold</strong>.'
+          : '<strong style="color:#dc2626;">falls below this threshold</strong> — the board is reviewing options.'}
+        The reserve fund earns interest at approximately ${s.interestRate}% annually.
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:.78rem;color:#94a3b8;padding:16px;margin-top:8px;">
       ${s.hoaName} · FY ${s.fiscalYear} Financial Summary · Generated ${new Date().toLocaleDateString()} · For community reference only
     </div>
   `;
@@ -3594,11 +4063,22 @@ function renderAll() {
   if (activeTab === 'bank')     renderBankTab();
 }
 
+function updateFundingVisibility() {
+  const sel  = document.getElementById('mp-funding');
+  const wrap = document.getElementById('mp-reserve-pct-wrap');
+  if (!sel || !wrap) return;
+  wrap.style.display = sel.value === 'split' ? '' : 'none';
+  if (sel.value === 'reserves')   document.getElementById('mp-reserve-pct').value = 100;
+  if (sel.value === 'assessment') document.getElementById('mp-reserve-pct').value = 0;
+}
+
 function attachModalListeners() {
   ['mp-cost','mp-year','mp-infl'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateModalPreview);
   });
+  const fundSel = document.getElementById('mp-funding');
+  if (fundSel) fundSel.addEventListener('change', updateFundingVisibility);
 }
 
 // ═══════════════════════════════════════════════════
@@ -3609,24 +4089,71 @@ function renderHistoryTab() {
   if (!hd) return;
   const years = hd.years;
 
-  let html = `<table class="budget-table" style="font-size:.8rem;">
+  // ── Helper: recompute category totals, item averages, grand totals ──────────
+  function recomputeAverages() {
+    hd.categories.forEach(cat => {
+      // Category totals = sum of item values per year
+      const nYears = years.length;
+      cat.totals = Array(nYears).fill(0);
+      cat.items.forEach(item => {
+        item.values.forEach((v, yi) => { cat.totals[yi] += (v || 0); });
+        // 8-yr avg for item (only non-zero years)
+        const nonZero = item.values.filter(v => v > 0);
+        item.avg8 = nonZero.length > 0
+          ? Math.round(nonZero.reduce((s, v) => s + v, 0) / nYears)
+          : 0;
+      });
+      // 8-yr avg for category
+      const nonZeroTotals = cat.totals.filter(v => v > 0);
+      cat.avg8 = nonZeroTotals.length > 0
+        ? Math.round(cat.totals.reduce((s, v) => s + v, 0) / nYears)
+        : 0;
+    });
+    // Grand totals
+    hd.grandTotals = Array(years.length).fill(0);
+    hd.categories.forEach(cat => {
+      cat.totals.forEach((v, yi) => { hd.grandTotals[yi] += v; });
+    });
+    hd.grandAvg8 = Math.round(hd.grandTotals.reduce((s, v) => s + v, 0) / years.length);
+  }
+
+  // ── Build editable table ────────────────────────────────────────────────────
+  let html = `<div style="margin-bottom:10px;font-size:.78rem;color:#64748b;">
+    <span style="background:#fef9c3;padding:2px 6px;border-radius:4px;border:1px solid #fde047;">
+      ✏ Click any year value to edit inline. Totals and 8-year averages recalculate automatically.
+    </span>
+  </div>`;
+
+  html += `<table class="budget-table" style="font-size:.8rem;">
     <thead><tr>
       <th style="min-width:200px;text-align:left;">Category / Line Item</th>
       ${years.map(y => `<th>${y}</th>`).join('')}
       <th style="background:#f3e8ff;color:#7c3aed;">8-Yr Avg</th>
     </tr></thead><tbody>`;
 
-  hd.categories.forEach(cat => {
-    html += `<tr class="cat-header"><td colspan="${years.length + 2}"><strong>${cat.name}</strong></td></tr>
+  hd.categories.forEach((cat, ci) => {
+    html += `<tr class="cat-header">
+      <td colspan="${years.length + 2}"><strong>${cat.name}</strong></td>
+    </tr>
     <tr style="background:#f8fafc;font-weight:700;">
       <td style="padding-left:12px;">Category Total</td>
       ${cat.totals.map(v => `<td class="text-right">${v ? fmt(v) : '—'}</td>`).join('')}
       <td class="text-right" style="background:#f3e8ff;color:#7c3aed;">${fmt(cat.avg8)}</td>
     </tr>`;
-    cat.items.forEach(item => {
+
+    cat.items.forEach((item, ii) => {
       html += `<tr>
         <td style="padding-left:24px;color:#64748b;">${escHtml(item.name)}</td>
-        ${item.values.map(v => `<td class="text-right">${v ? fmt(v) : '<span style="color:#cbd5e1">—</span>'}</td>`).join('')}
+        ${item.values.map((v, yi) => `
+          <td class="text-right">
+            <span class="hist-editable" data-ci="${ci}" data-ii="${ii}" data-yi="${yi}"
+                  style="cursor:pointer;padding:1px 4px;border-radius:3px;display:inline-block;
+                         ${v > 0 ? '' : 'color:#cbd5e1;'}"
+                  onclick="startHistEdit(this)"
+                  title="Click to edit">
+              ${v > 0 ? fmt(v) : '—'}
+            </span>
+          </td>`).join('')}
         <td class="text-right" style="background:#f3e8ff;color:#7c3aed;">${item.avg8 ? fmt(item.avg8) : '—'}</td>
       </tr>`;
     });
@@ -3642,23 +4169,41 @@ function renderHistoryTab() {
   if (curBudget > 0) {
     const diff = curBudget - hd.grandAvg8;
     const diffPct = Math.round(diff / hd.grandAvg8 * 100);
-    const color = diff > 0 ? '#dc2626' : '#16a34a';
-    html += `<div style="margin-top:12px;padding:10px 14px;background:#faf5ff;border-left:4px solid #7c3aed;border-radius:6px;font-size:.82rem;">
+    const diffPctCheck = hd.grandAvg8 > 0 ? (diff / hd.grandAvg8 * 100) : 0;
+  const color = diffPctCheck > 10 ? '#dc2626' : diffPctCheck < -10 ? '#16a34a' : '#64748b';
+    html += `<div style="margin-top:12px;padding:10px 14px;background:#faf5ff;
+        border-left:4px solid #7c3aed;border-radius:6px;font-size:.82rem;">
       <strong>FY${state.settings.fiscalYear} Budget vs. 8-Yr Average:</strong>
       ${fmt(curBudget)} proposed vs. ${fmt(hd.grandAvg8)} historical avg
-      <span style="color:${color};font-weight:700;margin-left:8px;">${diff >= 0 ? '+' : ''}${fmt(diff)} (${diffPct >= 0 ? '+' : ''}${diffPct}%)</span>
+      <span style="color:${color};font-weight:700;margin-left:8px;">
+        ${diff >= 0 ? '+' : ''}${fmt(diff)} (${diffPct >= 0 ? '+' : ''}${diffPct}%)
+      </span>
     </div>`;
   }
 
   document.getElementById('history-table-wrap').innerHTML = html;
 
+  // ── Capital events table ────────────────────────────────────────────────────
   let capHtml = `<table class="budget-table" style="font-size:.8rem;">
-    <thead><tr><th style="text-align:left">Year</th><th style="text-align:left">Project</th><th>Amount</th><th style="text-align:left">Category</th><th style="text-align:left">Notes</th></tr></thead><tbody>`;
+    <thead><tr>
+      <th style="text-align:left">Year</th><th style="text-align:left">Project</th>
+      <th>Amount</th><th style="text-align:left">Category</th>
+      <th style="text-align:left">Notes</th>
+    </tr></thead><tbody>`;
   hd.capitalEvents.forEach(ev => {
-    capHtml += `<tr><td>${ev.year}</td><td>${escHtml(ev.project)}</td><td class="text-right">${fmt(ev.amount)}</td><td>${escHtml(ev.category)}</td><td style="color:#64748b;font-size:.76rem;">${escHtml(ev.notes||'')}</td></tr>`;
+    capHtml += `<tr>
+      <td>${ev.year}</td><td>${escHtml(ev.project)}</td>
+      <td class="text-right">${fmt(ev.amount)}</td>
+      <td>${escHtml(ev.category)}</td>
+      <td style="color:#64748b;font-size:.76rem;">${escHtml(ev.notes||'')}</td>
+    </tr>`;
   });
-  const capTotal = hd.capitalEvents.reduce((s,e) => s+e.amount, 0);
-  capHtml += `<tr class="total-row"><td colspan="2">TOTAL CAPITAL (2018–2025)</td><td class="text-right">${fmt(capTotal)}</td><td colspan="2"></td></tr></tbody></table>`;
+  const capTotal = hd.capitalEvents.reduce((s, e) => s + e.amount, 0);
+  capHtml += `<tr class="total-row">
+    <td colspan="2">TOTAL CAPITAL (2018–2025)</td>
+    <td class="text-right">${fmt(capTotal)}</td>
+    <td colspan="2"></td>
+  </tr></tbody></table>`;
   document.getElementById('history-capital-wrap').innerHTML = capHtml;
 
   makeChart('history-trend-chart', {
@@ -3673,10 +4218,155 @@ function renderHistoryTab() {
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } },
         tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } } },
-      scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => '$'+Math.round(v/1000)+'k' } } }
+      scales: { x: { stacked: true }, y: { stacked: true,
+        ticks: { callback: v => '$' + Math.round(v/1000) + 'k' } } }
+    }
+  });
+
+  // expose recompute for inline editing
+  window._recomputeHistoryAverages = recomputeAverages;
+}
+
+// ── Inline history cell editing ───────────────────────────────────────────────
+function startHistEdit(span) {
+  if (span.querySelector('input')) return; // already editing
+  const ci  = parseInt(span.dataset.ci);
+  const ii  = parseInt(span.dataset.ii);
+  const yi  = parseInt(span.dataset.yi);
+  const cur = state.historicalData.categories[ci].items[ii].values[yi] || 0;
+
+  const input = document.createElement('input');
+  input.type  = 'number';
+  input.min   = '0';
+  input.value = cur || '';
+  input.placeholder = '0';
+  input.style.cssText = 'width:72px;border:none;outline:2px solid #3b82f6;border-radius:3px;' +
+    'padding:1px 4px;font-size:.8rem;text-align:right;font-family:inherit;background:white;';
+
+  span.textContent = '';
+  span.appendChild(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const val = parseFloat(input.value) || 0;
+    state.historicalData.categories[ci].items[ii].values[yi] = val;
+    if (window._recomputeHistoryAverages) window._recomputeHistoryAverages();
+    saveState();
+    renderHistoryTab();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { renderHistoryTab(); }
+    // Tab to next cell
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      commit();
+      // Find next hist-editable in tab order
+      const allSpans = Array.from(document.querySelectorAll('.hist-editable'));
+      const myIdx    = allSpans.findIndex(s => s === span);
+      const next     = allSpans[myIdx + (e.shiftKey ? -1 : 1)];
+      if (next) setTimeout(() => startHistEdit(next), 50);
     }
   });
 }
+
+// ── Recalculate historicalData from Vendor Ledger ────────────────────────────
+function recalcFromVendorLedger() {
+  const hd = state.historicalData;
+  if (!hd) return;
+
+  // Category name → id map
+  const catNameToId = {};
+  hd.categories.forEach(c => { catNameToId[c.name.toLowerCase()] = c.id; });
+
+  // Figure out which years have any vendor ledger entries
+  const ledgerYears = new Set(
+    (state.vendorLedger || [])
+      .filter(r => r.type === 'Operating')
+      .map(r => r.year)
+  );
+
+  if (!ledgerYears.size) {
+    alert('No Operating entries found in the Vendor Ledger.');
+    return;
+  }
+
+  const yearsToUpdate = [...ledgerYears].filter(y => hd.years.includes(y));
+  if (!yearsToUpdate.length) {
+    alert('Vendor Ledger years (' + [...ledgerYears].join(', ') +
+      ') do not match Historical Data years (' + hd.years.join(', ') + ').');
+    return;
+  }
+
+    if (!confirm('Overwrite Historical Data for: ' + yearsToUpdate.join(', ') + '? Line-item values update from Vendor Ledger (Operating entries only). Continue?')) return;
+
+  yearsToUpdate.forEach(year => {
+    const yi = hd.years.indexOf(year);
+    if (yi < 0) return;
+
+    // Aggregate vendor ledger by category + line item for this year
+    const catAgg  = {};  // catId → total
+    const itemAgg = {};  // catId/itemName → total
+
+    (state.vendorLedger || [])
+      .filter(r => r.year === year && r.type === 'Operating')
+      .forEach(r => {
+        const catId = catNameToId[r.category?.toLowerCase()] || null;
+        if (!catId) return;
+        catAgg[catId] = (catAgg[catId] || 0) + (r.amount || 0);
+        const itemKey = catId + '||' + (r.lineItem || r.description || '').toLowerCase().trim();
+        itemAgg[itemKey] = (itemAgg[itemKey] || 0) + (r.amount || 0);
+      });
+
+    // Update item values
+    hd.categories.forEach(cat => {
+      cat.items.forEach(item => {
+        const itemKey = cat.id + '||' + item.name.toLowerCase().trim();
+        // Try exact match, then partial
+        let val = itemAgg[itemKey];
+        if (val === undefined) {
+          const itemLow = item.name.toLowerCase();
+          for (const [k, v] of Object.entries(itemAgg)) {
+            if (k.startsWith(cat.id + '||') && k.includes(itemLow.split(' ')[0])) {
+              val = v; break;
+            }
+          }
+        }
+        if (val !== undefined) {
+          item.values[yi] = Math.round(val);
+        }
+      });
+    });
+  });
+
+  // Recompute all totals and averages
+  hd.categories.forEach(cat => {
+    const nYears = hd.years.length;
+    cat.totals = Array(nYears).fill(0);
+    cat.items.forEach(item => {
+      item.values.forEach((v, i) => { cat.totals[i] += (v || 0); });
+      const nonZero = item.values.filter(v => v > 0);
+      item.avg8 = nonZero.length > 0
+        ? Math.round(item.values.reduce((s, v) => s + (v||0), 0) / nYears)
+        : 0;
+    });
+    const avg = Math.round(cat.totals.reduce((s, v) => s + v, 0) / nYears);
+    cat.avg8 = avg;
+  });
+  hd.grandTotals = Array(hd.years.length).fill(0);
+  hd.categories.forEach(cat => {
+    cat.totals.forEach((v, i) => { hd.grandTotals[i] += v; });
+  });
+  hd.grandAvg8 = Math.round(hd.grandTotals.reduce((s, v) => s + v, 0) / hd.years.length);
+
+  saveState();
+  renderHistoryTab();
+  alert('Updated ' + yearsToUpdate.length + ' year(s) from Vendor Ledger. ' +
+    'Review the totals — line items without exact name matches may need manual correction.');
+}
+
 
 function exportHistoryCSV() {
   const hd = state.historicalData;
@@ -3690,10 +4380,7 @@ function exportHistoryCSV() {
   downloadCSV('hidden_creek_history.csv', rows);
 }
 
-function importHistoryCSV(event) {
-  alert('CSV import noted. For full historical data updates, edit the embedded data or use JSON export/import.');
-  event.target.value = '';
-}
+// importHistoryCSV removed — use inline editing or Recalc from Vendor Ledger button instead
 
 // ═══════════════════════════════════════════════════
 // TAB 9: VENDOR LEDGER
