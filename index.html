@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hidden Creek HOA — Financial Planning System</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ── RESET & BASE ── */
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -266,7 +267,7 @@ input,select,textarea{font-family:inherit;}
     <span class="save-indicator" id="save-indicator">All changes saved</span>
     <button class="btn-export btn-sm btn" onclick="exportData()">⬇ Export</button>
     <label class="btn-export btn-sm btn" style="cursor:pointer">⬆ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
-    <button class="btn-homeowner" onclick="showHomeowner()">🏠 Homeowner View</button>
+    <button class="btn-homeowner" onclick="generateHomeownerPDF()">📄 Homeowner PDF</button>
   </div>
 </div>
 
@@ -1096,20 +1097,6 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- ══ HOMEOWNER OVERLAY ══ -->
-<div class="ho-overlay" id="ho-overlay">
-  <div class="ho-header">
-    <div>
-      <div id="ho-title" style="font-size:1.5rem;font-weight:700;">Hidden Creek HOA</div>
-      <div id="ho-subtitle" class="sub">FY 2026 — Community Financial Summary</div>
-    </div>
-    <div class="ho-header-right">
-      <button class="btn btn-success" onclick="window.print()">🖨 Print / Save PDF</button>
-      <button class="btn btn-ghost" onclick="hideHomeowner()">✕ Close</button>
-    </div>
-  </div>
-  <div class="ho-container" id="ho-content"></div>
-</div>
 
 <script>
 // ═══════════════════════════════════════════════════
@@ -2399,325 +2386,9 @@ function renderAllScenariosTable(activeAmt) {
 // ═══════════════════════════════════════════════════
 // 12. HOMEOWNER VIEW
 // ═══════════════════════════════════════════════════
-function showHomeowner() {
-  renderHomeowner();
-  document.getElementById('ho-overlay').classList.add('open');
-  window.scrollTo(0, 0);
-}
-
-function hideHomeowner() {
-  document.getElementById('ho-overlay').classList.remove('open');
-}
-
-function renderHomeowner() {
-  const s = state.settings;
-  document.getElementById('ho-title').textContent = s.hoaName;
-  document.getElementById('ho-subtitle').textContent = `FY ${s.fiscalYear} — Community Financial Summary`;
-
-  const total = budgetTotal();
-  const cats = budgetByCategory();
-  const rows = calcForecast();
-  const minR = Math.min(...rows.map(r => r.endBalance));
-  const health = getHealth(rows);
-
-  const catRows = cats.map((c,i) => `
-    <tr>
-      <td><span class="ho-cat-dot" style="background:${CAT_COLORS[i]}"></span>${c.name}</td>
-      <td style="text-align:right;font-weight:600;">${fmt(c.budget)}</td>
-      <td style="text-align:right;color:#64748b;">${fmt(Math.round(c.budget/s.lots))}/lot</td>
-      <td style="text-align:right;color:#64748b;">${total>0?Math.round(c.budget/total*100)+'%':'—'}</td>
-    </tr>`).join('');
 
 
-  // ── Page 2: prior year budget comparison ────────────────────────────────
-  const hd2     = state.historicalData;
-  const priorYr = s.fiscalYear - 1;
-  const priorIdx2 = hd2 && hd2.years ? hd2.years.indexOf(priorYr) : -1;
-  const priorCatTotals = {};
-  if (priorIdx2 >= 0 && hd2.categories) {
-    hd2.categories.forEach(hc => { priorCatTotals[hc.id] = hc.totals[priorIdx2] || 0; });
-  }
-  const hoTotalPrior = priorIdx2 >= 0 && hd2.grandTotals ? (hd2.grandTotals[priorIdx2] || 0) : 0;
-  const hoGrandVarAmt = hoTotalPrior > 0 ? total - hoTotalPrior : null;
-  const hoGrandVarPct = hoGrandVarAmt !== null && hoTotalPrior > 0
-    ? Math.round(hoGrandVarAmt / hoTotalPrior * 100) : null;
-  const hoGrandVarColor = hoGrandVarAmt === null ? '#64748b'
-    : hoGrandVarAmt > 0 ? '#dc2626' : '#16a34a';
-  const hoGrandVar = hoGrandVarPct !== null
-    ? fmt(hoGrandVarAmt) + ' (' + (hoGrandVarPct >= 0 ? '+' : '') + hoGrandVarPct + '%)'
-    : '—';
 
-  const hoBudgetRows = cats.map((c, ci) => {
-    const prior = priorCatTotals[c.id] || 0;
-    const varAmt = prior > 0 ? c.budget - prior : null;
-    const varPct = varAmt !== null && prior > 0 ? Math.round(varAmt / prior * 100) : null;
-    const varColor = varAmt === null ? '#64748b' : varAmt > 0 ? '#dc2626' : '#16a34a';
-    const varStr = varPct !== null
-      ? fmt(varAmt) + ' (' + (varPct >= 0 ? '+' : '') + varPct + '%)'
-      : '—';
-    const bg = ci % 2 === 0 ? '#ffffff' : '#f8fafc';
-    return '<tr style="background:' + bg + ';">' +
-      '<td style="padding:8px 12px;">' + c.name + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;font-weight:600;">' + fmt(c.budget) + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;color:#64748b;">' + (prior > 0 ? fmt(prior) : '—') + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;font-weight:600;color:' + varColor + ';">' + varStr + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;color:#64748b;">' + fmt(Math.round(c.budget / s.lots)) + '</td>' +
-      '</tr>';
-  }).join('');
-
-
-  const futureProjects = state.capitalProjects
-    .filter(p => p.status !== 'deferred' && p.year >= s.fiscalYear)
-    .sort((a,b) => a.year - b.year);
-
-  const projRows = futureProjects.map(p => {
-    const ic = inflatedCost(p);
-    const isBig = ic >= 50000;
-    return `<tr${isBig?" class='ho-big-project'":""}>
-      <td>${isBig?'⚠ ':''}${p.name}</td>
-      <td>${p.category}</td>
-      <td style="text-align:center;">${p.year}</td>
-      <td style="text-align:right;font-weight:600;">${fmt(ic)}</td>
-      <td><span class="status-badge status-${p.status}" style="font-size:.68rem;">${statusLabel(p.status)}</span></td>
-    </tr>`;
-  }).join('');
-
-  // Dynamic minimums for homeowner view
-  const dynMinsHO = calcDynamicMinimum();
-
-  // Build capital+reserve rows (10-year window)
-  const hoCapitalRows = dynMinsHO.map((dm, i) => {
-    const row = rows[i];
-    const projects = state.capitalProjects.filter(p =>
-      p.status !== 'deferred' && p.year === dm.year
-    );
-    const projCost = projects.reduce((s, p) => s + inflatedCost(p), 0);
-    const projNames = projects.map(p => p.name).join(', ') || '—';
-    const onTrack = row.endBalance >= dm.minimum;
-    const gap = row.endBalance - dm.minimum;
-    const statusColor = row.endBalance < 0 ? '#991b1b'
-      : !onTrack ? '#854d0e' : '#166534';
-    const statusBg = row.endBalance < 0 ? '#fee2e2'
-      : !onTrack ? '#fef9c3' : '#dcfce7';
-    const statusLabel2 = row.endBalance < 0 ? '⚠ Negative'
-      : !onTrack ? '⚠ Below target (' + fmt(gap) + ')' : '✓ On track';
-    const rowBg = row.endBalance < 0 ? '#fef2f2' : !onTrack ? '#fffbeb' : 'white';
-    return '<tr style="background:' + rowBg + ';border-bottom:1px solid #f1f5f9;">' +
-      '<td style="padding:8px 12px;font-weight:600;">' + dm.year + '</td>' +
-      '<td style="padding:8px 12px;color:#374151;">' + projNames + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;color:' + (projCost>0?'#854d0e':'#94a3b8') + ';font-weight:' + (projCost>0?700:400) + ';">' +
-        (projCost > 0 ? fmt(projCost) : '—') + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;color:#64748b;">' + fmt(dm.minimum) + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + (row.endBalance < 0 ? '#dc2626' : '#1e293b') + ';">' +
-        fmt(row.endBalance) + '</td>' +
-      '<td style="padding:8px 12px;text-align:right;">' +
-        '<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;' +
-          'background:' + statusBg + ';color:' + statusColor + ';">' + statusLabel2 + '</span></td>' +
-      '</tr>';
-  }).join('');
-
-  // Reserve narrative
-  const belowYears = rows.filter(r => r.endBalance < r.dynMin);
-  const negYears   = rows.filter(r => r.endBalance < 0);
-  let hoReserveNarrative;
-  if (health === 'green') {
-    hoReserveNarrative = '<strong>✓ Reserve fund is on track.</strong> Projected balances meet or exceed the ' +
-      'dynamic target — covering one year of operating expenses plus proportional pre-funding for all planned ' +
-      'capital projects — in every year of the 10-year plan.';
-  } else if (negYears.length > 0) {
-    const yr = negYears[0].year;
-    const proj = state.capitalProjects.find(p => p.year === yr && p.status !== 'deferred');
-    hoReserveNarrative = '<strong>⚠ Attention required.</strong> Reserves are projected to go negative in ' + yr +
-      (proj ? ' due to the ' + proj.name + ' project (' + fmt(inflatedCost(proj)) + ')' : '') +
-      '. The board is evaluating dues adjustments and capital timing to address this shortfall.';
-  } else {
-    const yr = belowYears[0]?.year;
-    const proj = state.capitalProjects.find(p => p.year === yr && p.status !== 'deferred');
-    hoReserveNarrative = '<strong>⚠ Reserve monitoring in progress.</strong> Projected reserves fall below the ' +
-      'required target in ' + yr +
-      (proj ? ', primarily due to the planned ' + proj.name + ' (' + fmt(inflatedCost(proj)) + ')' : '') +
-      '. The board is actively planning to ensure adequate funding through dues adjustments or project timing.';
-  }
-
-  const fillClass = health === 'green' ? '' : health === 'yellow' ? 'warn' : 'danger';
-
-  document.getElementById('ho-content').innerHTML = `
-    <!-- PAGE 1: HOUSEHOLD VIEW (existing) -->
-    <div class="ho-section">
-      <h2>💰 Your Annual Dues — FY ${s.fiscalYear}</h2>
-      <div class="ho-dues-box">
-        <div class="ho-dues-amount">
-          <div class="big">$${s.assessmentPerLot.toLocaleString()}</div>
-          <div class="label">Per lot / year</div>
-        </div>
-        <div class="ho-dues-amount">
-          <div class="big">$${Math.round(s.assessmentPerLot/12).toLocaleString()}</div>
-          <div class="label">Per lot / month</div>
-        </div>
-        <div style="flex:1;font-size:.88rem;color:#475569;line-height:1.8;padding:16px;background:#f0fdf4;border-radius:12px;">
-          Your HOA has <strong>${s.lots} dues-paying lots</strong>. Annual dues of <strong>$${s.assessmentPerLot.toLocaleString()}/lot</strong>
-          generate <strong>${fmt(s.assessmentPerLot * s.lots)}</strong> per year in dues revenue — used to cover shared community operating expenses and build our reserve fund for future capital projects.
-        </div>
-      </div>
-    </div>
-
-    <div class="ho-section">
-      <h2>🧾 How Your Dues Are Used — FY ${s.fiscalYear} Operating Budget</h2>
-      <div class="ho-breakdown">
-        <div style="height:240px;width:240px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;">
-          <canvas id="ho-donut"></canvas>
-          <div style="position:absolute;text-align:center;pointer-events:none;">
-            <div style="font-size:1.2rem;font-weight:800;">${fmt(total)}</div>
-            <div style="font-size:.68rem;color:#64748b;">operating budget</div>
-          </div>
-        </div>
-        <table class="ho-breakdown-table">
-          <tr style="font-size:.72rem;color:#94a3b8;font-weight:700;text-transform:uppercase;">
-            <td>Category</td><td style="text-align:right;">Budget</td><td style="text-align:right;">$/Lot</td><td style="text-align:right;">%</td>
-          </tr>
-          ${catRows}
-          <tr><td><strong>TOTAL</strong></td><td style="text-align:right;"><strong>${fmt(total)}</strong></td>
-              <td style="text-align:right;"><strong>${fmt(Math.round(total/s.lots))}</strong></td><td style="text-align:right;">100%</td></tr>
-        </table>
-      </div>
-    </div>
-
-    <div class="ho-section">
-      <h2>🏗 Capital Plan &amp; Reserve Trajectory</h2>
-      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">
-        Our reserve fund must cover two obligations: at least one full year of operating
-        expenses as a non-negotiable floor, plus proportional pre-funding for upcoming
-        capital projects. The table below shows planned projects alongside the reserve
-        balance and required target for each year.
-      </p>
-
-      <!-- Capital timeline + reserve by year table -->
-      <div style="overflow-x:auto;margin-bottom:20px;">
-        <table style="width:100%;border-collapse:collapse;font-size:.83rem;">
-          <thead>
-            <tr style="background:#1e293b;color:white;">
-              <th style="padding:8px 12px;text-align:left;">Year</th>
-              <th style="padding:8px 12px;text-align:left;">Capital Projects</th>
-              <th style="padding:8px 12px;text-align:right;">Project Cost</th>
-              <th style="padding:8px 12px;text-align:right;">Reserve Target</th>
-              <th style="padding:8px 12px;text-align:right;">Projected Reserve</th>
-              <th style="padding:8px 12px;text-align:right;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${hoCapitalRows}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Plain-language reserve narrative -->
-      <div style="padding:14px 16px;border-radius:10px;font-size:.88rem;line-height:1.7;
-        background:${health==='green'?'#f0fdf4':health==='yellow'?'#fefce8':'#fef2f2'};
-        border-left:4px solid ${health==='green'?'#22c55e':health==='yellow'?'#f59e0b':'#ef4444'};
-        color:${health==='green'?'#166534':health==='yellow'?'#854d0e':'#991b1b'};">
-        ${hoReserveNarrative}
-      </div>
-
-      <div style="margin-top:14px;font-size:.78rem;color:#94a3b8;line-height:1.6;">
-        Reserve target = 1× annual operating expenses + proportional pre-funding for
-        capital projects within the 10-year plan window. All project costs are
-        inflation-adjusted estimates.
-      </div>
-    </div>
-
-        <!-- PAGE BREAK for print -->
-    <div style="page-break-before:always;"></div>
-
-    <!-- PAGE 2: BUDGET SUMMARY + CASH POSITION -->
-    <div class="ho-section" style="margin-top:32px;">
-      <h2>📊 Annual Budget — FY ${s.fiscalYear} vs. ${s.fiscalYear-1}</h2>
-      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">
-        Operating expenses by category, comparing the current year budget to prior year actuals.
-        All amounts are board-approved expenditure plans.
-      </p>
-      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-        <thead>
-          <tr style="background:#166534;color:white;">
-            <th style="padding:9px 12px;text-align:left;font-weight:700;">Category</th>
-            <th style="padding:9px 12px;text-align:right;font-weight:700;">FY ${s.fiscalYear} Budget</th>
-            <th style="padding:9px 12px;text-align:right;font-weight:700;">${s.fiscalYear-1} Actual</th>
-            <th style="padding:9px 12px;text-align:right;font-weight:700;">Change</th>
-            <th style="padding:9px 12px;text-align:right;font-weight:700;">Per Lot</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${hoBudgetRows}
-        </tbody>
-        <tfoot>
-          <tr style="background:#f0fdf4;font-weight:700;border-top:2px solid #166534;">
-            <td style="padding:10px 12px;">TOTAL OPERATING</td>
-            <td style="padding:10px 12px;text-align:right;">${fmt(total)}</td>
-            <td style="padding:10px 12px;text-align:right;color:#64748b;">${hoTotalPrior > 0 ? fmt(hoTotalPrior) : '—'}</td>
-            <td style="padding:10px 12px;text-align:right;color:${hoGrandVarColor};">${hoGrandVar}</td>
-            <td style="padding:10px 12px;text-align:right;">${fmt(Math.round(total/s.lots))}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <div class="ho-section">
-      <h2>💵 Cash Position — FY ${s.fiscalYear}</h2>
-      <p style="font-size:.85rem;color:#475569;margin-bottom:16px;">
-        Reserve account balance at the start of the year and projected year-end position based on
-        the current budget, capital plan, and dues revenue.
-      </p>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
-        <div class="ho-stat" style="flex:1;min-width:160px;">
-          <div class="val">${fmt(s.startingReserve)}</div>
-          <div class="lbl">Jan 1 Opening Balance</div>
-        </div>
-        <div class="ho-stat" style="flex:1;min-width:160px;background:#eff6ff;">
-          <div class="val" style="color:#1d4ed8;">+${fmt(rows[0].dues)}</div>
-          <div class="lbl">Dues Revenue</div>
-        </div>
-        <div class="ho-stat" style="flex:1;min-width:160px;background:#eff6ff;">
-          <div class="val" style="color:#1d4ed8;">+${fmt(rows[0].interest)}</div>
-          <div class="lbl">Interest Income</div>
-        </div>
-        <div class="ho-stat" style="flex:1;min-width:160px;background:#fef2f2;">
-          <div class="val" style="color:#dc2626;">-${fmt(rows[0].opex)}</div>
-          <div class="lbl">Operating Expenses</div>
-        </div>
-        ${rows[0].capex > 0 ? `
-        <div class="ho-stat" style="flex:1;min-width:160px;background:#fef9c3;">
-          <div class="val" style="color:#854d0e;">-${fmt(rows[0].capex)}</div>
-          <div class="lbl">Capital Projects</div>
-        </div>` : ''}
-        <div class="ho-stat" style="flex:1;min-width:160px;background:${rows[0].endBalance >= s.minReserve ? '#f0fdf4' : '#fef2f2'};">
-          <div class="val" style="color:${rows[0].endBalance >= s.minReserve ? '#166534' : '#dc2626'};">${fmt(rows[0].endBalance)}</div>
-          <div class="lbl">Dec 31 Projected Balance</div>
-        </div>
-      </div>
-      <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;font-size:.82rem;color:#475569;line-height:1.7;">
-        <strong>Minimum reserve target: ${fmt(s.minReserve)}</strong> — established by board policy as the floor below which
-        reserves should not fall. The ${s.fiscalYear} projection
-        ${rows[0].endBalance >= s.minReserve
-          ? '<strong style="color:#166534;">remains above this threshold</strong>.'
-          : '<strong style="color:#dc2626;">falls below this threshold</strong> — the board is reviewing options.'}
-        The reserve fund earns interest at approximately ${s.interestRate}% annually.
-      </div>
-    </div>
-
-    <div style="text-align:center;font-size:.78rem;color:#94a3b8;padding:16px;margin-top:8px;">
-      ${s.hoaName} · FY ${s.fiscalYear} Financial Summary · Generated ${new Date().toLocaleDateString()} · For community reference only
-    </div>
-  `;
-
-  setTimeout(() => {
-    makeChart('ho-donut', {
-      type:'doughnut',
-      data:{ labels:cats.map(c=>c.name), datasets:[{data:cats.map(c=>c.budget), backgroundColor:CAT_COLORS, borderWidth:3, borderColor:'white'}] },
-      options:{ responsive:false, plugins:{ legend:{display:false},
-        tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.parsed)+' ('+Math.round(ctx.parsed/total*100)+'%)'}} },
-        cutout:'68%' }
-    });
-  }, 50);
-}
 
 
 // ── OTHER REVENUE (Tab 2) ───────────────────────────────────────────────────
@@ -4557,6 +4228,443 @@ function importVendorCSV(event) {
   event.target.value = '';
 }
 
+
+// ═══════════════════════════════════════════════════
+// HOMEOWNER PDF GENERATOR (jsPDF)
+// ═══════════════════════════════════════════════════
+function generateHomeownerPDF() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded. Please check your internet connection.'); return; }
+
+  const s      = state.settings;
+  const hd     = state.historicalData;
+  const cats   = state.budget.categories;
+  const fy     = s.fiscalYear;
+  const priorYr = fy - 1;
+
+  // ── Data prep ──────────────────────────────────────────────────────────────
+  const total2026 = budgetTotal();
+  const perLot    = total2026 / s.lots;
+  const perLotMo  = perLot / 12;
+  const surplus   = s.assessmentPerLot - perLot;
+
+  const priorIdx  = hd && hd.years ? hd.years.indexOf(priorYr) : -1;
+  const total2025 = priorIdx >= 0 && hd.grandTotals ? hd.grandTotals[priorIdx] : 0;
+  const cat2025   = {};
+  if (priorIdx >= 0 && hd.categories) {
+    hd.categories.forEach(c => {
+      cat2025[c.id]               = c.totals[priorIdx];
+      cat2025[c.name.toLowerCase()] = c.totals[priorIdx];
+    });
+  }
+
+  // Reserve projection
+  const duesRev     = s.assessmentPerLot * s.lots;
+  const interestY1  = Math.round(s.startingReserve * s.interestRate / 100);
+  const capY1       = capexByYear(fy);
+  const projEndRes  = Math.round(s.startingReserve + duesRev + interestY1 - total2026 - capY1);
+
+  // ── PDF setup ──────────────────────────────────────────────────────────────
+  const doc  = new jsPDF({ unit: 'pt', format: 'letter' });
+  const W    = 612, H = 792;
+  const ML   = 50, MR = 562, MT = 50;
+  const CW   = MR - ML;
+
+  // Colors
+  const DARK  = [30,  41,  59];
+  const SAGE  = [22, 101, 52];
+  const MIST  = [100,116,139];
+  const BLUE  = [29,  78, 216];
+  const RED   = [220, 38, 38];
+  const GREEN = [22, 163, 74];
+  const GOLD  = [181,137, 42];
+  const WHITE = [255,255,255];
+  const LGREY = [248,250,252];
+  const LGRN  = [240,253,244];
+
+  function setColor(rgb, type='fill') {
+    if (type === 'fill') doc.setFillColor(...rgb);
+    else doc.setTextColor(...rgb);
+  }
+  function money(n) {
+    if (n == null || isNaN(n)) return '—';
+    return '$' + Math.round(Math.abs(n)).toLocaleString();
+  }
+  function pctStr(nw, old) {
+    if (!old) return 'New';
+    const v = Math.round((nw - old) / old * 100);
+    return (v >= 0 ? '+' : '') + v + '%';
+  }
+  function pctColor(nw, old) {
+    if (!old) return GOLD;
+    const v = (nw - old) / old * 100;
+    if (v > 10)  return RED;
+    if (v < -10) return GREEN;
+    return MIST;
+  }
+  function hline(y, lw=0.5, color=MIST) {
+    doc.setLineWidth(lw);
+    doc.setDrawColor(...color);
+    doc.line(ML, y, MR, y);
+  }
+  function txt(text, x, y, size=10, color=DARK, align='left', bold=false) {
+    doc.setFontSize(size);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    setColor(color, 'text');
+    doc.text(String(text), x, y, { align });
+  }
+  function filledRect(x, y, w, h, color) {
+    setColor(color, 'fill');
+    doc.rect(x, y, w, h, 'F');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // PAGE 1 — HOUSEHOLD VIEW
+  // ════════════════════════════════════════════════════════════════
+  let y = MT;
+
+  // Header
+  txt(s.hoaName.toUpperCase(), ML, y, 8, MIST, 'left', true);
+  y += 18;
+  txt(`FY ${fy} — Community Financial Summary`, ML, y, 18, DARK, 'left', true);
+  y += 8;
+  txt('For Homeowner Distribution', ML, y, 8, MIST);
+  y += 12;
+  hline(y, 1.5, SAGE); y += 14;
+
+  // ── Dues boxes ──────────────────────────────────────────────────
+  txt('Your Annual Assessment', ML, y, 13, SAGE, 'left', true);
+  y += 16;
+
+  const boxW = (CW - 8) / 3;
+  const boxes = [
+    { val: money(s.assessmentPerLot), label: 'Per Lot / Year',          bg: LGRN,  vc: SAGE },
+    { val: money(s.assessmentPerLot/2), label: `Per Invoice (Jan & Jul)`, bg: [239,246,255], vc: BLUE },
+    { val: money(perLotMo),            label: 'Equivalent Monthly',      bg: LGREY, vc: DARK },
+  ];
+  boxes.forEach((b, i) => {
+    const bx = ML + i * (boxW + 4);
+    filledRect(bx, y, boxW, 56, b.bg);
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(200,210,220);
+    doc.rect(bx, y, boxW, 56, 'S');
+    txt(b.val,   bx + boxW/2, y + 24, 22, b.vc, 'center', true);
+    txt(b.label, bx + boxW/2, y + 42,  8, MIST, 'center');
+  });
+  y += 68;
+
+  // Billing note
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  setColor(DARK, 'text');
+  const note1 = `Invoices are sent twice per year — January (covering Jul–Dec ${priorYr}) and July (covering Jan–Jun ${fy}).`;
+  const note2 = `The HOA has ${s.lots} dues-paying lots, generating ${money(s.assessmentPerLot * s.lots)} in annual dues revenue.`;
+  doc.text(note1, ML, y, { maxWidth: CW }); y += 14;
+  doc.text(note2, ML, y, { maxWidth: CW }); y += 20;
+
+  // ── Per-lot breakdown table ──────────────────────────────────────
+  txt(`How Your Assessment Is Used — FY ${fy} Operating Budget`, ML, y, 13, SAGE, 'left', true);
+  y += 14;
+
+  // Table header
+  const cols = [
+    { label: 'Category',            w: 175, align: 'left'  },
+    { label: 'Budget',              w:  80, align: 'right' },
+    { label: 'Your Share / Year',   w: 100, align: 'right' },
+    { label: 'Your Share / Month',  w: 105, align: 'right' },
+    { label: '% of Budget',         w:  55, align: 'right' },
+  ];
+
+  const rowH = 18;
+  let cx = ML;
+  filledRect(ML, y, CW, rowH, DARK);
+  cols.forEach(c => {
+    txt(c.label, c.align==='right' ? cx+c.w-6 : cx+6, y+12, 8, WHITE, c.align, true);
+    cx += c.w;
+  });
+  y += rowH;
+
+  cats.forEach((cat, ri) => {
+    const catTotal = cat.items.reduce((s,it) => s+(it.budget||0),0);
+    const share = catTotal / s.lots;
+    const pctBud = total2026 > 0 ? (catTotal/total2026*100).toFixed(1) : '0';
+    const bg = ri % 2 === 0 ? WHITE : LGREY;
+    filledRect(ML, y, CW, rowH, bg);
+    hline(y+rowH, 0.3, [225,232,240]);
+    cx = ML;
+    const vals = [cat.name, money(catTotal), money(share), money(share/12), pctBud+'%'];
+    cols.forEach((c, ci) => {
+      txt(vals[ci], c.align==='right' ? cx+c.w-6 : cx+6, y+12, 9, DARK, c.align);
+      cx += c.w;
+    });
+    y += rowH;
+  });
+
+  // Total row
+  filledRect(ML, y, CW, rowH, [240,244,248]);
+  hline(y, 1.5, DARK);
+  cx = ML;
+  const totVals = ['TOTAL OPERATING', money(total2026), money(perLot), money(perLotMo), '100%'];
+  cols.forEach((c, ci) => {
+    txt(totVals[ci], c.align==='right' ? cx+c.w-6 : cx+6, y+12, 9, DARK, c.align, true);
+    cx += c.w;
+  });
+  y += rowH + 14;
+
+  // ── Donut chart ─────────────────────────────────────────────────
+  const catColors2 = [
+    [99,102,241],[34,197,94],[245,158,11],[59,130,246],[239,68,68]
+  ];
+  const catTotals2 = cats.map(c => c.items.reduce((s,it)=>s+(it.budget||0),0));
+  const total2026c  = catTotals2.reduce((a,b)=>a+b,0);
+  if (total2026c > 0) {
+    const dcx = ML + 58, dcy = y + 58, rOut = 50, rIn = 30;
+    let ang = -Math.PI/2;
+    catTotals2.forEach((val,i) => {
+      if (!val) return;
+      const sweep = (val/total2026c)*Math.PI*2;
+      const col   = catColors2[i % catColors2.length];
+      doc.setFillColor(...col);
+      doc.setDrawColor(255,255,255);
+      doc.setLineWidth(1.5);
+      const steps = Math.max(4, Math.round(sweep*16));
+      const pts   = [];
+      for (let k=0;k<=steps;k++) {
+        const a=ang+(sweep*k/steps);
+        pts.push([dcx+Math.cos(a)*rOut, dcy+Math.sin(a)*rOut]);
+      }
+      for (let k=steps;k>=0;k--) {
+        const a=ang+(sweep*k/steps);
+        pts.push([dcx+Math.cos(a)*rIn, dcy+Math.sin(a)*rIn]);
+      }
+      doc.lines(
+        pts.slice(1).map((p,k)=>[p[0]-pts[k][0],p[1]-pts[k][1]]),
+        pts[0][0],pts[0][1],[1,1],'FD',true
+      );
+      ang += sweep;
+    });
+    txt(money(total2026c), dcx, dcy-5,  9, DARK, 'center', true);
+    txt('total budget',    dcx, dcy+7,  7, MIST, 'center');
+    const lx = ML + 130, ly0 = y + 14;
+    catTotals2.forEach((val,i) => {
+      if (!val) return;
+      const col = catColors2[i%catColors2.length];
+      const lly = ly0 + i*19;
+      doc.setFillColor(...col);
+      doc.rect(lx, lly-7, 9, 9, 'F');
+      txt(cats[i].name, lx+14, lly, 8, DARK);
+      txt((val/total2026c*100).toFixed(1)+'%', MR, lly, 8, MIST, 'right');
+    });
+    y += 130;
+  }
+
+  // Reserve note
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); setColor(DARK,'text');
+  const resNote = `Reserve Fund: Opening balance Jan 1: ${money(s.startingReserve)}. The reserve fund covers capital projects — road maintenance, pool equipment replacement, and community improvements. A dues adjustment may be considered in future years as capital obligations grow.`;
+  const split = doc.splitTextToSize(resNote, CW);
+  doc.text(split, ML, y); y += split.length * 13;
+
+  // Footer
+  y = H - 40;
+  hline(y, 0.5, [220,228,238]); y += 14;
+  txt(`${s.hoaName}  ·  FY ${fy} Financial Summary  ·  For community reference only`,
+      W/2, y, 8, MIST, 'center');
+
+  // ════════════════════════════════════════════════════════════════
+  // PAGE 2 — BUDGET COMPARISON + CASH POSITION
+  // ════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = MT;
+
+  txt(s.hoaName.toUpperCase(), ML, y, 8, MIST, 'left', true); y += 18;
+  txt(`FY ${fy} — Budget Detail & Cash Position`, ML, y, 18, DARK, 'left', true); y += 8;
+  hline(y, 1.5, SAGE); y += 16;
+
+  // ── Budget comparison table ──────────────────────────────────────
+  txt(`Operating Budget — FY ${fy} vs. ${priorYr} Actuals`, ML, y, 13, SAGE, 'left', true); y += 14;
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); setColor(MIST,'text');
+  doc.text(`FY ${fy} board-approved budget vs. ${priorYr} actuals. Red = increase, green = decrease, gray = within ±10%.`,
+           ML, y, {maxWidth:CW}); y += 16;
+
+  const bcols = [
+    { label: 'Category',        w: 140, align: 'left'  },
+    { label: `FY ${fy} Budget`, w:  80, align: 'right' },
+    { label: `${priorYr} Actual`,w: 80, align: 'right' },
+    { label: 'Change ($)',       w:  80, align: 'right' },
+    { label: 'Change (%)',       w:  65, align: 'right' },
+    { label: `Per Lot ${fy}`,   w:  70, align: 'right' },
+  ];
+
+  cx = ML;
+  filledRect(ML, y, CW, rowH, DARK);
+  bcols.forEach(c => {
+    txt(c.label, c.align==='right' ? cx+c.w-6 : cx+6, y+12, 8, WHITE, c.align, true);
+    cx += c.w;
+  });
+  y += rowH;
+
+  cats.forEach((cat, ri) => {
+    const budget26 = cat.items.reduce((s,it) => s+(it.budget||0),0);
+    const prior    = cat2025[cat.id] || cat2025[cat.name.toLowerCase()] || 0;
+    const delta    = budget26 - prior;
+    const ps       = pctStr(budget26, prior);
+    const pc       = pctColor(budget26, prior);
+    const bg       = ri % 2 === 0 ? WHITE : LGREY;
+    filledRect(ML, y, CW, rowH, bg);
+    hline(y+rowH, 0.3, [225,232,240]);
+    cx = ML;
+    const bvals = [
+      cat.name,
+      money(budget26),
+      prior ? money(prior) : '—',
+      prior ? (delta>=0?'+':'')+money(delta) : '—',
+      ps,
+      money(budget26/s.lots),
+    ];
+    bcols.forEach((c, ci) => {
+      let color = DARK;
+      if (ci === 3 && prior) color = delta > 0 ? RED : GREEN;
+      if (ci === 4) color = pc;
+      if (ci === 2) color = MIST;
+      if (ci === 5) color = MIST;
+      txt(bvals[ci], c.align==='right' ? cx+c.w-6 : cx+6, y+12, 9, color, c.align);
+      cx += c.w;
+    });
+    y += rowH;
+  });
+
+  // Total row
+  const totDelta = total2026 - total2025;
+  filledRect(ML, y, CW, rowH, [240,244,248]);
+  hline(y, 1.5, DARK);
+  cx = ML;
+  const btotals = [
+    'TOTAL',
+    money(total2026),
+    money(total2025),
+    (totDelta>=0?'+':'')+money(totDelta),
+    pctStr(total2026, total2025),
+    money(perLot),
+  ];
+  bcols.forEach((c, ci) => {
+    let color = DARK;
+    if (ci === 3) color = totDelta > 0 ? RED : GREEN;
+    if (ci === 4) color = pctColor(total2026, total2025);
+    if (ci === 2) color = MIST;
+    txt(btotals[ci], c.align==='right' ? cx+c.w-6 : cx+6, y+12, 9, color, c.align, true);
+    cx += c.w;
+  });
+  y += rowH + 24;
+
+  // ── Capital projects ───────────────────────────────────────────
+  y += 8;
+  hline(y, 1, [220,228,238]); y += 16;
+  txt('Planned Capital Projects — 10-Year Outlook', ML, y, 13, SAGE, 'left', true); y += 12;
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); setColor(MIST,'text');
+  doc.text('Reserve balance shown is the projected end-of-year balance for that year based on current dues and budget assumptions.',
+           ML, y, {maxWidth:CW}); y += 14;
+  const fcRows2 = calcForecast();
+  const upcomingProj = state.capitalProjects
+    .filter(p => p.status!=='deferred' && p.year>=fy && p.year<=fy+9)
+    .sort((a,b)=>a.year-b.year);
+  if (upcomingProj.length) {
+    const ph = 17;
+    const pcols2 = [
+      {label:'Year',      w:42,  align:'right'},
+      {label:'Project',   w:190, align:'left'},
+      {label:'Est. Cost', w:78,  align:'right'},
+      {label:'Funding',   w:72,  align:'center'},
+      {label:'Starting Reserve Balance', w:90, align:'right'},
+    ];
+    let pcx2=ML;
+    filledRect(ML, y, CW, ph, DARK);
+    pcols2.forEach(c=>{
+      txt(c.label, c.align==='right'?pcx2+c.w-6:c.align==='center'?pcx2+c.w/2:pcx2+6,
+          y+11, 8, WHITE, c.align==='center'?'center':c.align, true);
+      pcx2+=c.w;
+    });
+    y+=ph;
+    upcomingProj.forEach((p,ri)=>{
+      const ic  = inflatedCost(p);
+      const rp  = p.reservePct!=null?p.reservePct:100;
+      const fcR    = fcRows2.find(r=>r.year===p.year);
+      const fcRprev = fcRows2.find(r=>r.year===p.year-1);
+      // Starting balance = prior year ending balance (or Jan 1 opening for first forecast year)
+      const bal = p.year===fy ? s.startingReserve
+                : fcRprev    ? fcRprev.endBalance
+                : fcR        ? fcR.endBalance - fcR.revenue + fcR.opex + fcR.capex
+                : null;
+      const fs  = rp===100?'Reserves':rp===0?'Assessment':`${rp}% Res.`;
+      const bg  = ri%2===0?WHITE:LGREY;
+      filledRect(ML, y, CW, ph, bg);
+      hline(y+ph, 0.3, [225,232,240]);
+      pcx2=ML;
+      const pv  = [String(p.year), p.name, money(ic), fs, bal!=null?money(bal):'—'];
+      pcols2.forEach((c,ci)=>{
+        const col = ci>=3?MIST:DARK;
+        txt(pv[ci], c.align==='right'?pcx2+c.w-6:c.align==='center'?pcx2+c.w/2:pcx2+6,
+            y+11, 8, col, c.align==='center'?'center':c.align);
+        pcx2+=c.w;
+      });
+      y+=ph;
+    });
+    y+=8;
+  } else {
+    doc.setFontSize(9); setColor(MIST,'text');
+    doc.text('No capital projects scheduled in the next 10 years.', ML, y); y+=14;
+  }
+
+  // ── Cash position ────────────────────────────────────────────────
+  hline(y, 1, [220,228,238]); y += 16;
+  txt(`Reserve Cash Position — FY ${fy}`, ML, y, 13, SAGE, 'left', true); y += 18;
+
+  const cashRows = [
+    { label: 'Opening Balance (Jan 1)',                         val: money(s.startingReserve),    color: DARK,  bold: false },
+    { label: `+ Dues Revenue (${s.lots} lots × ${money(s.assessmentPerLot)})`, val: money(duesRev), color: GREEN, bold: false },
+    { label: `+ Interest Income (~${s.interestRate}% on reserve)`, val: money(interestY1),       color: GREEN, bold: false },
+    { label: '− Operating Expenses (budgeted)',                  val: `(${money(total2026)})`,   color: RED,   bold: false },
+  ];
+  if (capY1 > 0) {
+    cashRows.push({ label: `− Capital Projects (FY ${fy})`, val: `(${money(capY1)})`,
+                    color: [180,120,0], bold: false });
+  }
+  cashRows.push({
+    label: `Projected Ending Balance (Dec 31 ${fy})`,
+    val:   money(projEndRes),
+    color: projEndRes > 0 ? GREEN : RED,
+    bold:  true,
+    total: true,
+  });
+
+  const cashLW = 380, cashVW = 130;
+  cashRows.forEach((row, ri) => {
+    const rowBg = row.total ? LGRN : (ri % 2 === 0 ? WHITE : LGREY);
+    filledRect(ML, y, cashLW + cashVW, rowH, rowBg);
+    if (row.total) { hline(y, 1.5, SAGE); }
+    else { hline(y+rowH, 0.3, [225,232,240]); }
+    // Explicitly set font for every row to prevent bleed from prior rows
+    const fw = row.bold ? 'bold' : 'normal';
+    doc.setFont('helvetica', fw);
+    doc.setFontSize(row.total ? 11 : 10);
+    txt(row.label, ML+10,              y+12, row.total?11:10, DARK,      'left',  row.bold);
+    txt(row.val,   ML+cashLW+cashVW-8, y+12, row.total?11:10, row.color, 'right', row.bold);
+    y += rowH;
+  });
+  y += 10;
+
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); setColor(MIST,'text');
+  doc.text('Projected year-end balance is an estimate based on the approved budget and current dues. Actual results may vary.',
+           ML, y, {maxWidth: CW});
+
+  // Footer
+  y = H - 40;
+  hline(y, 0.5, [220,228,238]); y += 14;
+  txt(`${s.hoaName}  ·  FY ${fy} Financial Summary  ·  For community reference only`,
+      W/2, y, 8, MIST, 'center');
+
+  // ── Download ──────────────────────────────────────────────────────
+  doc.save(`HiddenCreek_HomeownerSummary_${fy}.pdf`);
+}
+
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
@@ -4570,7 +4678,6 @@ window.addEventListener('DOMContentLoaded', () => {
       closePaymentModal();
       closeImpactModal();
       closeTxnModal();
-      hideHomeowner();
     }
   });
 });
